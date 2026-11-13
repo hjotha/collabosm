@@ -121,7 +121,7 @@ from accounts import Accounts  # noqa: E402
 REGISTRY = registry.load()
 RECIPES = registry.flat(REGISTRY)
 GPUS = [{k: g.get(k) for k in ("id", "card", "accelerator", "shape", "vram_gb", "ram_gb",
-                               "cu_per_hour", "facts")} for g in REGISTRY["gpus"]]
+                               "cu_per_hour", "free_tier", "facts")} for g in REGISTRY["gpus"]]
 MODELS = [{k: m.get(k) for k in ("id", "name", "params", "quant", "native_ctx", "vision",
                                  "bytes")} for m in REGISTRY["models"]]
 
@@ -703,11 +703,13 @@ class Control:
             bal = self.state.get("balance") or {}
             left = bal["cu"] if bal.get("cu") is not None else self.state["cu_left"]
             need = round(recipe["cu_per_hour"] * ((recipe["eta_min"] + 5) / 60.0), 2)
-            if left < max(3.0, need):
+            if recipe.get("free_tier") and (account_id != "free" or bal.get("cu") is None or bal["cu"] > 0):
+                return {"ok": False, "code": "free_account_required"}
+            if not recipe.get("free_tier") and left < max(3.0, need):
                 return {"ok": False, "code": "budget", "cu_left": round(left, 1),
                         "cu_need": round(need, 1)}
             warn = {"recipe": recipe["id"], "card": recipe["card"], "model": recipe["model"],
-                    "status": recipe["status"],
+                    "status": recipe["status"], "free_tier": recipe.get("free_tier", False),
                     "chat_only": (recipe["facts"].get("responses_api") or {}).get("v") is False,
                     "rate_measured": bool((recipe["facts"].get("cu_per_hour") or {}).get("measured")),
                     "cu_per_hour": recipe["cu_per_hour"],

@@ -13,9 +13,23 @@
       "min_vram_gib": 36,
       "cu_per_hour": 5.37,
       "facts": {
-        "cu_per_hour": {"v": 5.37, "measured": false, "src": "Colab UI figure, never read from ccu-info"},
-        "vram": {"v": 39, "unit": "GiB", "measured": true, "src": "a 40 GB draw probes at ~39 GiB (scripts/restore.py)"},
-        "ram": {"v": 83, "unit": "GiB", "measured": false, "src": "Colab's standard A100 shape; not probed here"}
+        "cu_per_hour": {
+          "v": 5.37,
+          "measured": false,
+          "src": "Colab UI figure, never read from ccu-info"
+        },
+        "vram": {
+          "v": 39,
+          "unit": "GiB",
+          "measured": true,
+          "src": "a 40 GB draw probes at ~39 GiB (scripts/restore.py)"
+        },
+        "ram": {
+          "v": 83,
+          "unit": "GiB",
+          "measured": false,
+          "src": "Colab's standard A100 shape; not probed here"
+        }
       }
     },
     {
@@ -28,9 +42,41 @@
       "min_vram_gib": 70,
       "cu_per_hour": 6.77,
       "facts": {
-        "cu_per_hour": {"v": 6.77, "measured": true, "src": "Colab /tun/m/ccu-info consumptionRateHourly with this box as the account's only assignment, 2026-10-10"},
-        "vram": {"v": 79.3, "unit": "GiB", "measured": true, "src": "restore.py probe, docs/MEASURED.md"},
-        "ram": {"v": 167.1, "unit": "GiB", "measured": true, "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10"}
+        "cu_per_hour": {
+          "v": 6.77,
+          "measured": true,
+          "src": "Colab /tun/m/ccu-info consumptionRateHourly with this box as the account's only assignment, 2026-10-10"
+        },
+        "vram": {
+          "v": 79.3,
+          "unit": "GiB",
+          "measured": true,
+          "src": "restore.py probe, docs/MEASURED.md"
+        },
+        "ram": {
+          "v": 167.1,
+          "unit": "GiB",
+          "measured": true,
+          "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10"
+        }
+      }
+    },
+    {
+      "id": "t4-free",
+      "card": "T4 · gratuita",
+      "accelerator": "T4",
+      "shape": "st",
+      "vram_gb": 16,
+      "ram_gb": 12,
+      "min_vram_gib": 14,
+      "cu_per_hour": 0,
+      "free_tier": true,
+      "facts": {
+        "cu_per_hour": {
+          "v": 0,
+          "measured": false,
+          "src": "Tier gratuito sem unidades, sujeito à disponibilidade; contas com unidades podem ser cobradas."
+        }
       }
     }
   ],
@@ -128,6 +174,20 @@
         "context": 131072,
         "reserve_mb": 2048
       }
+    },
+    {
+      "id": "swift-qwen38-iq3s",
+      "name": "Swift Qwen3.8-27B",
+      "short": "GGUF IQ3_S MTP",
+      "params": "27B",
+      "quant": "GGUF IQ3_S MTP",
+      "engine": "llama",
+      "repo": "ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF",
+      "revision": "d74895bbe5db4bec1e0024e7cc87d59c02d7631a",
+      "dir": "/content/collabosm-llama/model",
+      "served_id": "swift-qwen38-27b-iq3s",
+      "vision": false,
+      "mtp": true
     }
   ],
   "recipes": [
@@ -149,15 +209,52 @@
         "CONCURRENCY": 2
       },
       "facts": {
-        "weights": {"v": 15.26, "unit": "GiB", "measured": true, "src": "16,384,243,706 B at branch SC_4.00bpw_H5_V6 (Hugging Face tree), embeddings, 6-bit vision tower and 4-bit MTP layer included; the pack's own plot puts this quant at KL 0.0062 vs ~0.015 for the plain 3.50 bpw it replaces"},
-        "vram_mib": {"v": 33500, "measured": false, "src": "derived: 17.1 GiB measured outside the KV on 2026-09-27 (26,746 MiB in all with Q8 KV at 262K) + Q4 KV for 819,200 tokens at 19,584 B each (16 attention layers + the MTP layer) = 14.9 GiB + the second recurrent state slot for two-way decode, 728 MiB (48 GDN layers x 48 heads x 128 x 128 fp32 x 5 for ndt 4, plus conv state); not yet loaded this way"},
-        "prefill_tps": {"v": 2544, "measured": true, "src": "32,551-token cold prompt, second of a pair, on the A100-40G 2026-09-27 with Q8 KV (4K: 2,935; 119K: 1,435)"},
-        "decode_tps": {"v": 50.4, "measured": true, "src": "512 tokens at 32K context, MTP ndt 4, on the A100-40G 2026-09-27 with Q8 KV (short context: 62.9; ~128K: ~44); Q4 reads half the KV per token, so long contexts should come out a little faster"},
-        "eta_min": {"v": 6, "measured": true, "src": "billing to READY in 5 min 51 s on 2026-09-27, 43.6 s of it a warm-up since cut to ~8K tokens"},
-        "context": {"v": 409600, "measured": false, "src": "per conversation: YaRN 1.5625 over the native 262,144 (the model card documents YaRN up to 1M); the 819,200-token cache holds two such conversations, decoding together; quality past 262K not measured"},
-        "vision": {"v": true, "measured": false, "src": "the tower is quantized to 6 bits inside the shards (needs ExLlamaV3 >= 1.4.4; 1.5.1 here); never loaded"},
-        "concurrency": {"v": 2, "measured": false, "src": "two jobs per engine step: -ambs 2 gives the second recurrent state slot, and api_server's one conductor thread drives the Generator for both; 2 x 409,600 positions fit the 819,200-token cache; a third request waits its turn; not yet run on this card"},
-        "host_ram": {"v": "ccs 16 + rcs 16 GiB", "measured": false, "src": "36.7 of 83.5 GiB in use on 2026-09-27; rcs is 16, not 8: a GDN checkpoint here is ~150 MB (48 layers x 48 heads x 128 x 128 fp32), one every ~2048 tokens, so an 86K-token Codex prompt leaves ~42 of them (~6 GB)"}
+        "weights": {
+          "v": 15.26,
+          "unit": "GiB",
+          "measured": true,
+          "src": "16,384,243,706 B at branch SC_4.00bpw_H5_V6 (Hugging Face tree), embeddings, 6-bit vision tower and 4-bit MTP layer included; the pack's own plot puts this quant at KL 0.0062 vs ~0.015 for the plain 3.50 bpw it replaces"
+        },
+        "vram_mib": {
+          "v": 33500,
+          "measured": false,
+          "src": "derived: 17.1 GiB measured outside the KV on 2026-09-27 (26,746 MiB in all with Q8 KV at 262K) + Q4 KV for 819,200 tokens at 19,584 B each (16 attention layers + the MTP layer) = 14.9 GiB + the second recurrent state slot for two-way decode, 728 MiB (48 GDN layers x 48 heads x 128 x 128 fp32 x 5 for ndt 4, plus conv state); not yet loaded this way"
+        },
+        "prefill_tps": {
+          "v": 2544,
+          "measured": true,
+          "src": "32,551-token cold prompt, second of a pair, on the A100-40G 2026-09-27 with Q8 KV (4K: 2,935; 119K: 1,435)"
+        },
+        "decode_tps": {
+          "v": 50.4,
+          "measured": true,
+          "src": "512 tokens at 32K context, MTP ndt 4, on the A100-40G 2026-09-27 with Q8 KV (short context: 62.9; ~128K: ~44); Q4 reads half the KV per token, so long contexts should come out a little faster"
+        },
+        "eta_min": {
+          "v": 6,
+          "measured": true,
+          "src": "billing to READY in 5 min 51 s on 2026-09-27, 43.6 s of it a warm-up since cut to ~8K tokens"
+        },
+        "context": {
+          "v": 409600,
+          "measured": false,
+          "src": "per conversation: YaRN 1.5625 over the native 262,144 (the model card documents YaRN up to 1M); the 819,200-token cache holds two such conversations, decoding together; quality past 262K not measured"
+        },
+        "vision": {
+          "v": true,
+          "measured": false,
+          "src": "the tower is quantized to 6 bits inside the shards (needs ExLlamaV3 >= 1.4.4; 1.5.1 here); never loaded"
+        },
+        "concurrency": {
+          "v": 2,
+          "measured": false,
+          "src": "two jobs per engine step: -ambs 2 gives the second recurrent state slot, and api_server's one conductor thread drives the Generator for both; 2 x 409,600 positions fit the 819,200-token cache; a third request waits its turn; not yet run on this card"
+        },
+        "host_ram": {
+          "v": "ccs 16 + rcs 16 GiB",
+          "measured": false,
+          "src": "36.7 of 83.5 GiB in use on 2026-09-27; rcs is 16, not 8: a GDN checkpoint here is ~150 MB (48 layers x 48 heads x 128 x 128 fp32), one every ~2048 tokens, so an 86K-token Codex prompt leaves ~42 of them (~6 GB)"
+        }
       }
     },
     {
@@ -179,16 +276,57 @@
         "CONCURRENCY": 1
       },
       "facts": {
-        "weights": {"v": 100.1, "unit": "GiB", "measured": true, "src": "107,463,600,896 B at branch 4.05bpw_h6_ng6 (Hugging Face tree): the 4.05 bpw weights with the 36.36 GiB n-gram table (host RAM, -ngr) and the 6-bit vision tower (561 MB)"},
-        "prefill_tps": {"v": 3882, "measured": true, "src": "gcs sweep at 8192, docs/MEASURED.md (2,806 at gcs 2048)"},
-        "decode_tps": {"v": 97.4, "measured": true, "src": "MTP ndt 4 at a 30K context, docs/MEASURED.md"},
-        "load_s": {"v": 259.5, "measured": true, "src": "serve.sh at cache 500224, docs/MEASURED.md"},
-        "eta_min": {"v": 11, "measured": true, "src": "download 280 s + load 259.5 s + install, docs/MEASURED.md"},
-        "vram_mib": {"v": 76437, "measured": true, "src": "after load at cache 500224, gcs 4096, vision off; with gcs 8192 and the tower together: not measured"},
-        "context": {"v": 500224, "measured": false, "src": "the KV fits (measured); positions past the native 262,144 come from YaRN x2 (rope_parameters + max_position_embeddings 524288, which is how exllamav3 derives the factor); quality there not measured"},
-        "vision": {"v": true, "measured": false, "src": "the pack carries vision_k6.safetensors (561 MB); its weights sit in pinned host RAM (EXL3_VISION_PINNED) so the tower costs no VRAM for weights; image encoding speed not measured"},
-        "concurrency": {"v": 1, "measured": true, "src": "one job per engine step (CONCURRENCY 1); how many live jobs would fit is computed in docs/CONCURRENCY.md, never exercised"},
-        "host_ram": {"v": "ngr 36.4 + ccs 32 + rcs 24 GiB", "measured": false, "src": "the verified run used -ccs 16 -rcs 16"}
+        "weights": {
+          "v": 100.1,
+          "unit": "GiB",
+          "measured": true,
+          "src": "107,463,600,896 B at branch 4.05bpw_h6_ng6 (Hugging Face tree): the 4.05 bpw weights with the 36.36 GiB n-gram table (host RAM, -ngr) and the 6-bit vision tower (561 MB)"
+        },
+        "prefill_tps": {
+          "v": 3882,
+          "measured": true,
+          "src": "gcs sweep at 8192, docs/MEASURED.md (2,806 at gcs 2048)"
+        },
+        "decode_tps": {
+          "v": 97.4,
+          "measured": true,
+          "src": "MTP ndt 4 at a 30K context, docs/MEASURED.md"
+        },
+        "load_s": {
+          "v": 259.5,
+          "measured": true,
+          "src": "serve.sh at cache 500224, docs/MEASURED.md"
+        },
+        "eta_min": {
+          "v": 11,
+          "measured": true,
+          "src": "download 280 s + load 259.5 s + install, docs/MEASURED.md"
+        },
+        "vram_mib": {
+          "v": 76437,
+          "measured": true,
+          "src": "after load at cache 500224, gcs 4096, vision off; with gcs 8192 and the tower together: not measured"
+        },
+        "context": {
+          "v": 500224,
+          "measured": false,
+          "src": "the KV fits (measured); positions past the native 262,144 come from YaRN x2 (rope_parameters + max_position_embeddings 524288, which is how exllamav3 derives the factor); quality there not measured"
+        },
+        "vision": {
+          "v": true,
+          "measured": false,
+          "src": "the pack carries vision_k6.safetensors (561 MB); its weights sit in pinned host RAM (EXL3_VISION_PINNED) so the tower costs no VRAM for weights; image encoding speed not measured"
+        },
+        "concurrency": {
+          "v": 1,
+          "measured": true,
+          "src": "one job per engine step (CONCURRENCY 1); how many live jobs would fit is computed in docs/CONCURRENCY.md, never exercised"
+        },
+        "host_ram": {
+          "v": "ngr 36.4 + ccs 32 + rcs 24 GiB",
+          "measured": false,
+          "src": "the verified run used -ccs 16 -rcs 16"
+        }
       }
     },
     {
@@ -280,19 +418,97 @@
         "zh": "固定版本 Project Maya 与 Maya-L 已直接实测；CollabOSM 启动和隧道流程已接入，但尚未付费端到端复测。仅支持文本聊天，不支持 Responses API。"
       },
       "facts": {
-        "weights": {"v": 145.6, "unit": "GiB", "measured": true, "src": "Four Maya-L GGUF shards totalled 156.319 GB decimal (145.6 GiB); HF main resolved to revision f16ee4ba50d8fd2bb726ea1862ca6ca14ba188da before the 2026-10-10 trial download, whose files passed upstream SHA-256 checks."},
-        "engine_version": {"v": "1.0.30", "measured": true, "src": "Project Maya release v1.0.30, source commit c189f7ac8114ca039e9643314d1fead014fc6ff5; trial on 2026-10-10."},
-        "prefill_tps": {"v": 1084.1, "unit": "tokens/s", "measured": true, "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, one 11,515-token text prompt; prompt cache was zero. Observed sample, not a median; not a measurement of 128K."},
-        "decode_tps": {"v": 16.2, "unit": "tokens/s", "measured": true, "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, 256-token text generation. Observed sample, not a median; not a measurement of 128K."},
-        "vram_mib": {"v": 81169, "measured": true, "src": "Historical 32K configuration, default 700 MiB reserve: nvidia-smi point-in-time reading immediately after the 11,515-in/256-out text sample on A100-SXM4-80GB; 81,920 MiB total, 2026-10-10; not a measurement of 128K."},
-        "eta_min": {"v": 110, "unit": "min", "measured": false, "src": "Conservative UI estimate for first setup through first model load. Trial took 76.8 min for setup/download/build plus about 8 min for initial load (~85 min total); Colab scheduling and transfer/build vary."},
-        "context": {"v": 131072, "measured": false, "src": "Requested recipe context; Maya-L model native cap is 1,048,576 tokens. The 128K configuration has not been run or quality-tested."},
-        "benchmark_context": {"v": 32768, "measured": true, "src": "Original 32K configuration used for the 2026-10-10 speed and VRAM measurements; these historical measurements are not measurements of the 128K configuration."},
-        "expert_reserve_mib": {"v": 2048, "measured": false, "src": "Requested STRATA_GLM_RESERVE_MB setting increases non-expert VRAM reserve from the upstream default 700 MiB, reducing the automatically sized expert cache; effect at 128K is untested."},
-        "vision": {"v": false, "measured": true, "src": "Trial used text-only mode (`--no-vision`); image inputs are unsupported by this recipe."},
-        "responses_api": {"v": false, "measured": true, "src": "Pinned Project Maya v1.0.30 `serve/server.py` route inspection: chat completions are exposed; no `/v1/responses` route is implemented."},
-        "quantization": {"v": "IQ3_S gate/up; IQ4_XS down; Q5_K sensitive tensors; Q6 attention", "measured": true, "src": "Four-shard Maya-L quant layout used in the 2026-10-10 trial; Maya-S and Maya-M are not substitutes for this measured profile."},
-        "host_ram": {"v": 167.1, "unit": "GiB", "measured": true, "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10."}
+        "weights": {
+          "v": 145.6,
+          "unit": "GiB",
+          "measured": true,
+          "src": "Four Maya-L GGUF shards totalled 156.319 GB decimal (145.6 GiB); HF main resolved to revision f16ee4ba50d8fd2bb726ea1862ca6ca14ba188da before the 2026-10-10 trial download, whose files passed upstream SHA-256 checks."
+        },
+        "engine_version": {
+          "v": "1.0.30",
+          "measured": true,
+          "src": "Project Maya release v1.0.30, source commit c189f7ac8114ca039e9643314d1fead014fc6ff5; trial on 2026-10-10."
+        },
+        "prefill_tps": {
+          "v": 1084.1,
+          "unit": "tokens/s",
+          "measured": true,
+          "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, one 11,515-token text prompt; prompt cache was zero. Observed sample, not a median; not a measurement of 128K."
+        },
+        "decode_tps": {
+          "v": 16.2,
+          "unit": "tokens/s",
+          "measured": true,
+          "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, 256-token text generation. Observed sample, not a median; not a measurement of 128K."
+        },
+        "vram_mib": {
+          "v": 81169,
+          "measured": true,
+          "src": "Historical 32K configuration, default 700 MiB reserve: nvidia-smi point-in-time reading immediately after the 11,515-in/256-out text sample on A100-SXM4-80GB; 81,920 MiB total, 2026-10-10; not a measurement of 128K."
+        },
+        "eta_min": {
+          "v": 110,
+          "unit": "min",
+          "measured": false,
+          "src": "Conservative UI estimate for first setup through first model load. Trial took 76.8 min for setup/download/build plus about 8 min for initial load (~85 min total); Colab scheduling and transfer/build vary."
+        },
+        "context": {
+          "v": 131072,
+          "measured": false,
+          "src": "Requested recipe context; Maya-L model native cap is 1,048,576 tokens. The 128K configuration has not been run or quality-tested."
+        },
+        "benchmark_context": {
+          "v": 32768,
+          "measured": true,
+          "src": "Original 32K configuration used for the 2026-10-10 speed and VRAM measurements; these historical measurements are not measurements of the 128K configuration."
+        },
+        "expert_reserve_mib": {
+          "v": 2048,
+          "measured": false,
+          "src": "Requested STRATA_GLM_RESERVE_MB setting increases non-expert VRAM reserve from the upstream default 700 MiB, reducing the automatically sized expert cache; effect at 128K is untested."
+        },
+        "vision": {
+          "v": false,
+          "measured": true,
+          "src": "Trial used text-only mode (`--no-vision`); image inputs are unsupported by this recipe."
+        },
+        "responses_api": {
+          "v": false,
+          "measured": true,
+          "src": "Pinned Project Maya v1.0.30 `serve/server.py` route inspection: chat completions are exposed; no `/v1/responses` route is implemented."
+        },
+        "quantization": {
+          "v": "IQ3_S gate/up; IQ4_XS down; Q5_K sensitive tensors; Q6 attention",
+          "measured": true,
+          "src": "Four-shard Maya-L quant layout used in the 2026-10-10 trial; Maya-S and Maya-M are not substitutes for this measured profile."
+        },
+        "host_ram": {
+          "v": 167.1,
+          "unit": "GiB",
+          "measured": true,
+          "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10."
+        }
+      }
+    },
+    {
+      "id": "t4-free/swift-qwen38-iq3s",
+      "gpu": "t4-free",
+      "model": "swift-qwen38-iq3s",
+      "status": "unmeasured",
+      "eta_min": 20,
+      "env": {
+        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+        "LLAMA_CONTEXT": 32768
+      },
+      "why": {
+        "en": "Free tier T4 availability varies; this CollabOSM launch path has not been tested end to end. Select the free account; paid accounts may consume units."
+      },
+      "facts": {
+        "context": {
+          "v": 32768,
+          "measured": false,
+          "src": "Configuration from /home/hjotha/scripts/colab-qwen/README.md; not tested through CollabOSM."
+        }
       }
     }
   ]

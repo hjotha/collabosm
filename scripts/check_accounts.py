@@ -100,6 +100,26 @@ class Tests(unittest.TestCase):
         c.colab._stage = 'connected'
         self.assertEqual(c.select(recipe['id'], confirm=True)['code'], 'confirmation_expired')
 
+    def test_free_t4_requires_verified_zero_balance_and_profile(self):
+        c = self.control()
+        c.budget_cu, c.idle_stop_min, c.max_session_h = 200, 20, 6
+        rid = 't4-free/swift-qwen38-iq3s'
+        c.state['balance'] = {'cu': 0}
+        self.assertEqual(c.select(rid)['code'], 'free_account_required')
+        with self.accounts.lock:
+            self.accounts.data['accounts'].append({'id': 'free', 'label': 'Gratuita', 'home': self.temp.name})
+        self.accounts.switch('free')
+        c.state['balance'] = None
+        c.state['cu_left'] = 0
+        self.assertEqual(c.select(rid)['code'], 'free_account_required')
+        c.state['balance'] = {'cu': 1}
+        self.assertEqual(c.select(rid)['code'], 'free_account_required')
+        c.state['balance'] = {'cu': 0}
+        result = c.select(rid)
+        self.assertEqual(result['code'], 'confirm_required')
+        self.assertTrue(result['warning']['free_tier'])
+        self.assertEqual(c.state['stage'], 'idle')
+
     def test_refuse_owned_session_and_auth(self):
         c = self.control()
         profile = self.accounts.create('Segunda')

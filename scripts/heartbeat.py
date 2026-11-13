@@ -87,7 +87,7 @@ def _collabosm_heartbeat():
 
     # the model server, from inside the VM: no tunnel in the way
     # ours (api_server.py), or the Strata-derived server used by Strata and Maya
-    server = {"proc": bool(sh("pgrep -f '/content/api_server.py|serve/server.py --engine strata'"))}
+    server = {"proc": bool(sh("pgrep -f '/content/api_server.py|serve/server.py --engine strata|collabosm-llama/llama.*/llama-server'"))}
     code, _, ms = http("http://127.0.0.1:%d/health" % port)
     server.update(health=code, ms=ms)
     key = read("/content/api-key.txt")

@@ -38,7 +38,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REGISTRY = os.environ.get("RECIPES_FILE") or os.path.join(HERE, os.pardir, "recipes.json")
 STATUSES = ("verified", "unmeasured", "placeholder")
 # what serves the model on the box: our ExLlamaV3 API, Strata, or Project Maya
-ENGINES = ("exl3", "strata", "maya")
+ENGINES = ("exl3", "strata", "maya", "llama")
 DEFAULT = "a100-40g/qwen38-27b"
 ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]*$")
 # What the VM keeps besides the recipe's own keys, when the caller sets them: they are
@@ -236,7 +236,7 @@ def flat(reg: dict) -> list:
             "id": r["id"], "status": r["status"],
             "verified": r["status"] == "verified", "runnable": r["status"] != "placeholder",
             "gpu": g["id"], "card": g["card"], "accelerator": g["accelerator"],
-            "shape": g["shape"], "cu_per_hour": g["cu_per_hour"],
+            "shape": g["shape"], "cu_per_hour": g["cu_per_hour"], "free_tier": bool(g.get("free_tier")),
             "vram_gb": g["vram_gb"], "ram_gb": g.get("ram_gb"),
             "model_id": m["id"], "model": m["name"], "params": m.get("params"),
             "quant": m.get("quant"), "short": m.get("short") or (m.get("quant") or "").split(",")[0],

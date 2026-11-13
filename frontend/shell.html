@@ -647,6 +647,7 @@ const I18N = {
     'code.already': 'This recipe is already running.',
     'code.stop_first': 'A card is already running. Stop it before switching recipes; a switch is a full reload.',
     'code.stale_ledger': 'An earlier session was never closed. Press Stop first so it is stopped and accounted for.',
+    'code.free_account_required': 'Select the free account and wait for its zero balance to be verified.',
     'code.budget': 'Only {left} CU left, below this start’s estimate of {need} CU.',
     'code.nothing_to_stop': 'Nothing is billing right now.',
     'code.already_stopping': 'Already stopping.',
@@ -1609,6 +1610,10 @@ function stepsHTML(s) {
 
 function confirmHTML(w) {
   const unmeasured = w.status && w.status !== 'verified';
+  if (w.free_tier) return '<div class="confirm" role="group"><h3>' + esc(t('confirm.head')) + '</h3>'
+    + '<div class="who"><b>' + esc(w.card) + '</b><span>' + esc(w.model) + '</span></div>'
+    + '<p>Experimental: use a conta gratuita. A disponibilidade da T4 não é garantida; contas com créditos podem consumir unidades.</p>'
+    + '<div class="actions">' + btn('go', t('btn.go'), 'primary', 'play') + btn('cancel', t('btn.cancel')) + '</div></div>';
   return '<div class="confirm" role="group" aria-label="' + esc(t('confirm.head')) + '">'
     + '<h3>' + esc(t('confirm.head')) + '</h3>'
     + '<div class="who"><b>' + esc(w.card) + '</b><span>' + esc(w.model) + '</span></div>'
@@ -1738,7 +1743,7 @@ function gpuHTML(g, locked) {
     + (running ? '<span class="tag solid">' + esc(t('tag.current')) + '</span>' : '') + '</div>'
     + '<div class="chips">'
     + '<span class="chip' + (rate.measured ? '' : ' off') + '" tabindex="0" data-tip="' + esc(t('tip.rate', { how: how(rate) }))
-    + '">' + ico('coins') + '<b>' + num(g.cu_per_hour, 2) + '/h</b></span>'
+    + '">' + ico('coins') + '<b>' + (g.free_tier ? 'free tier' : num(g.cu_per_hour, 2) + '/h') + '</b></span>'
     + '<span class="chip" tabindex="0" data-tip="' + esc(t('tip.gvram')) + '">' + ico('cpu') + '<b>' + num(g.vram_gb, 0) + ' GB</b></span>'
     + (g.ram_gb ? '<span class="chip" tabindex="0" data-tip="' + esc(t('tip.gram')) + '">' + ico('memory') + '<b>' + num(g.ram_gb, 0) + ' GB</b></span>' : '')
     + '</div>';

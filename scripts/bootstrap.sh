@@ -58,7 +58,10 @@ nvidia-smi --query-gpu=name,driver_version,compute_cap --format=csv,noheader | s
 # ------------------------------------------------------ a Strata recipe instead
 # Strata brings its own engine and server (strata.sh): the ExLlamaV3 runtime and the
 # EXL3 weights below are not for it. The env block at the end is shared.
-if [ "${ENGINE:-exl3}" = "maya" ]; then
+if [ "${ENGINE:-exl3}" = "llama" ]; then
+  . /content/llama.sh
+  llama_install || fail "llama.cpp install"
+elif [ "${ENGINE:-exl3}" = "maya" ]; then
   . /content/maya.sh
   maya_install || fail "Maya install (see the lines above)"
 elif [ "${ENGINE:-exl3}" = "strata" ]; then
