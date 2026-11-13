@@ -116,6 +116,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.p
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import recipe as registry  # noqa: E402
 from colab_setup import ColabSetup  # noqa: E402
+from accounts import Accounts  # noqa: E402
 
 REGISTRY = registry.load()
 RECIPES = registry.flat(REGISTRY)
@@ -365,6 +366,19 @@ def _local_machine(path: str) -> dict:
     return d
 
 
+def account_operation(fn):
+    """Keep account selection stable until an operation has applied its result."""
+    def wrapped(self, *args, **kwargs):
+        with self.lock:
+            self.account_operations += 1
+        try:
+            return fn(self, *args, **kwargs)
+        finally:
+            with self.lock:
+                self.account_operations -= 1
+    return wrapped
+
+
 class Control:
     """status() / select() / cancel() / stop() / couple() -- the shell's whole contract."""
 
@@ -403,6 +417,8 @@ class Control:
         self.local_key = self._local_key()
 
         self.lock = threading.RLock()
+        self.account_operations = 0
+        self.accounts = Accounts(self.state_dir, os.path.expanduser("~"))
         self.proc = None
         self.job_recipe = None
         self.job_started = 0.0
@@ -417,6 +433,7 @@ class Control:
                                 fake=(fake_colab or "connected") if fake else None,
                                 runner=lambda argv, timeout: self._wsl_run(argv, timeout),
                                 log=self._log, on_connected=self._after_connect)
+        self.colab.account_home = self.accounts.home()
         self.started_here = False       # this process ran the job that holds the box
         self.charge_started = 0.0       # when this process took charge: job or adoption
         self.coupling = False
@@ -647,6 +664,7 @@ class Control:
         st["tunnel"] = _tunnel_view(st)
         st["log_tail"] = list(self.log)[-12:]
         st["colab"] = self.colab.snapshot()
+        st["colab"].update(self.accounts.snapshot())
         return st
 
     def select(self, recipe_id: str, confirm: bool = False) -> dict:
@@ -654,8 +672,11 @@ class Control:
         if recipe is None:
             return {"ok": False, "code": "unknown_recipe"}
         # judged on an answer: a Start pressed while the first look is still out waits
+        account_id = self.accounts.snapshot()["active_account"]
         colab = self.colab.settled(15)
         with self.lock:
+            if account_id != self.accounts.snapshot()["active_account"]:
+                return {"ok": False, "code": "colab_setup", "stage": "checking"}
             stage = self.state["stage"]
             if stage == "attached":
                 return {"ok": False, "code": "attached", "base": self.external}
@@ -677,6 +698,8 @@ class Control:
             if colab["stage"] != "connected":
                 # no CLI, or no sign-in: `up` would fail at its first Colab call
                 return {"ok": False, "code": "colab_setup", "stage": colab["stage"]}
+            if confirm and (self.state.get("confirm") or {}).get("recipe") != recipe_id:
+                return {"ok": False, "code": "confirmation_expired"}
             bal = self.state.get("balance") or {}
             left = bal["cu"] if bal.get("cu") is not None else self.state["cu_left"]
             need = round(recipe["cu_per_hour"] * ((recipe["eta_min"] + 5) / 60.0), 2)
@@ -741,7 +764,10 @@ class Control:
             self.stop_wanted = True
             self.epoch += 1          # a coupling still in flight must not revive this box
             proc = self.proc
-        cu = self._close_session(reason)
+        with self.lock:
+            op = self.ledger.get("open")
+            cu = (max(0.0, self._billed_until(op) - op["start"]) / 3600.0 * op["cu_per_hour"]
+                  if op else 0.0)
         if running_job and proc is not None and proc.poll() is None:
             try:
                 proc.terminate()
@@ -750,6 +776,7 @@ class Control:
         threading.Thread(target=self._do_stop, args=(reason, cu), daemon=True).start()
         return {"ok": True, "code": "stopping", "reason": reason, "cu": round(cu, 3)}
 
+    @account_operation
     def couple(self, why: str = "manual") -> dict:
         """Find the service on our live session and attach the rail to it.
 
@@ -919,9 +946,15 @@ class Control:
                        vm_possible=False)
             return
         self.proc = proc
+        created_endpoint = None
         try:
             for raw in proc.stdout:
-                self._absorb(_sanitize(raw))
+                line = _sanitize(raw)
+                marker = re.fullmatch(r"COLLABOSM_CREATED_ENDPOINT ([A-Za-z0-9-]+)", line.strip())
+                if marker:
+                    created_endpoint = marker.group(1)
+                    self._learn_endpoint(created_endpoint)
+                self._absorb(line)
             rc = proc.wait()
         except Exception as exc:
             self.proc = None
@@ -929,7 +962,8 @@ class Control:
                 proc.terminate()
             except Exception:
                 pass
-            self._fail(_note("fail.read", err=repr(exc)), "reading the job log failed: %r" % exc)
+            self._fail(_note("fail.read", err=repr(exc)), "reading the job log failed: %r" % exc,
+                       vm_possible=bool(created_endpoint), stop_endpoint=created_endpoint)
             return
         self.proc = None
 
@@ -939,13 +973,14 @@ class Control:
             self._after_ready(recipe)
             return
         if rc == 0:
-            self._fail(_note("fail.noready"), "up exited 0 without READY")
+            self._fail(_note("fail.noready"), "up exited 0 without READY", vm_possible=bool(created_endpoint),
+                       stop_endpoint=created_endpoint)
             return
         if rc == 5:
             self.colab.check()       # "cannot read assignments": most often a dead sign-in
-        # 2-5 never got a box and restore.py already stopped a 40 GB one (6); `down`
-        # is harmless for those and settles the question for all the rest.
-        self._fail(_note("fail.exit", rc=rc), "up exited %s" % rc)
+        # Return codes can recur after assignment; only an explicit ownership marker permits stop.
+        self._fail(_note("fail.exit", rc=rc), "up exited %s" % rc, vm_possible=bool(created_endpoint),
+                   stop_endpoint=created_endpoint)
 
     def _after_ready(self, recipe: dict) -> None:
         """Couple to what `up` just brought up: the key and the published URL come
@@ -965,7 +1000,7 @@ class Control:
             self._log("!! READY, but the rail could not couple (%s) -- chat will 503"
                       % r.get("code"))
 
-    def _run_down(self) -> None:
+    def _run_down(self, endpoint=None) -> bool:
         if self.fake:
             out = "[down] rehearsal: no VM was ever created"
             self.fake_vm_down = True
@@ -973,7 +1008,7 @@ class Control:
             # our session by name -- the default is "collabosm", and a stop that names
             # the wrong session "works" while ours keeps billing -- and our endpoint, so
             # a record the CLI dropped is put back before the stop
-            ep = self.known_endpoint
+            ep = endpoint or self.known_endpoint
             args = ["down", "--session", self.session]
             if ep and ENDPOINT_ID.match(ep):
                 args += ["--endpoint", ep]
@@ -985,6 +1020,7 @@ class Control:
                 self.colab.check()
         for line in out.splitlines()[-6:]:
             self._log(line)
+        return self.fake or "COLLABOSM_STOP_OK" in out.splitlines()
 
     def _let_go(self) -> None:
         """Forget the box: whatever held it (a job, an adoption) no longer does."""
@@ -1000,7 +1036,15 @@ class Control:
                           heartbeat=dict(NO_BEAT))
 
     def _do_stop(self, reason: str, cu: float) -> None:
-        self._run_down()
+        if not self._run_down():
+            with self.lock:
+                self.state.update(stage="failed", note=_note("fail.stop"),
+                                  foot=_note("foot.control"))
+            self._log("!! stop could not be confirmed; the VM may still be billing")
+            self._probe_sessions()
+            self._balance_soon()
+            return
+        cu = self._close_session(reason)
         with self.lock:
             self._let_go()
             self.state.update(stage="stopped", progress=0.0,
@@ -1010,7 +1054,7 @@ class Control:
         self._probe_sessions()
         self._balance_soon()
 
-    def _fail(self, note: dict, why: str, vm_possible: bool = True) -> None:
+    def _fail(self, note: dict, why: str, vm_possible: bool = True, stop_endpoint=None) -> None:
         cu = self._close_session("failed")
         note["a"]["autostop"] = "running" if vm_possible else "none"
         with self.lock:
@@ -1024,10 +1068,12 @@ class Control:
         # `up` stops nothing on its way out, so a failure after `assign` leaves a
         # VM billing behind a ledger entry that says it closed -- and the rail used
         # to refuse to stop a failed job at all.
-        self._run_down_marked()
+        stopped = self._run_down_marked(endpoint=stop_endpoint)
         with self.lock:
             if self.state["stage"] == "failed":
-                self.state["note"]["a"]["autostop"] = "done"
+                self.state["note"]["a"]["autostop"] = "done" if stopped else "failed"
+        if not stopped:
+            self._log("!! automatic stop could not be confirmed; the new VM may still be billing")
         self._probe_sessions()
 
     def _vm_gone(self, token=None) -> None:
@@ -1047,13 +1093,13 @@ class Control:
         self._refresh_money()
         threading.Thread(target=self._run_down_marked, daemon=True).start()
 
-    def _run_down_marked(self) -> None:
+    def _run_down_marked(self, endpoint=None) -> bool:
         """`down`, with new starts refused while it runs: restore.py could re-attach
         to the very box this is stopping, and the stop would then kill the new job."""
         with self.lock:
             self.downing = True
         try:
-            self._run_down()
+            return self._run_down(endpoint=endpoint)
         finally:
             with self.lock:
                 self.downing = False
@@ -1613,6 +1659,7 @@ class Control:
         return holding and now - (hb.get("tried_at") or 0) >= HEARTBEAT_RETRY_S and (
             hb.get("ok") is not True or now - (hb.get("at") or 0) >= HEARTBEAT_EVERY_S)
 
+    @account_operation
     def _keep_alive(self, ping: bool = True, heartbeat: bool = False) -> None:
         """Tell Colab the box is in use, and put back the CLI's record of it if the
         CLI dropped it (scripts/colab_keepalive.py). ping=False only does the
@@ -1734,6 +1781,7 @@ class Control:
                 "server": {"proc": True, "health": 200, "ms": 2, "requests": 0, "in_flight": 0},
                 "tunnel": {"proc": True, "url": None, "public": 200, "ms": 180}, "took_ms": 900}
 
+    @account_operation
     def _probe_balance(self) -> None:
         """The account's real compute-unit balance and burn rate, from Colab itself."""
         if self.fake or not self.colab.ready():
@@ -1752,6 +1800,7 @@ class Control:
     def _balance_soon(self) -> None:
         threading.Thread(target=self._probe_balance, daemon=True).start()
 
+    @account_operation
     def _probe_sessions(self):
         """What the server says is billing, parsed properly, with ours marked --
         or None when `colab sessions` did not answer, which is not "none"."""
@@ -1811,6 +1860,7 @@ class Control:
                                                   for s in sessions)))
         return sessions
 
+    @account_operation
     def _probe_cli(self) -> None:
         """Startup: where the Colab CLI is and whom it is signed in as (the rail's
         Colab guide), then -- once it can reach Colab -- the rest of the startup."""
@@ -1822,6 +1872,7 @@ class Control:
             return
         self._after_connect()
 
+    @account_operation
     def _after_connect(self) -> None:
         """The CLI can reach Colab (at startup, or the moment the guide finishes): read
         the balance, and look for a box that is already up."""
@@ -1849,18 +1900,76 @@ class Control:
 
     # ---- the Colab guide's buttons ----------------------------------------- #
 
+    def account_create(self, label):
+        if not isinstance(label, str) or not label.strip() or len(label.strip()) > 80:
+            return {"ok": False, "code": "invalid_label"}
+        with self.lock:
+            if self._account_busy():
+                return {"ok": False, "code": "account_busy"}
+            if self.colab.where == "wsl":
+                return {"ok": False, "code": "account_unsupported"}
+            try:
+                account_id = self.accounts.create(label)
+                result = self._account_switch_locked(account_id)
+            except OSError:
+                return {"ok": False, "code": "account_error"}
+            return {"ok": True, "code": "account_created", "id": account_id} if result else {"ok": False, "code": "account_error"}
+
+    def _account_busy(self):
+        return (self.account_operations or self.coupling or self.downing or self.keepalive_busy
+                or self.state["stage"] not in ("idle", "stopped", "failed")
+                or self.ledger.get("open") is not None
+                or self.colab.stage() in ("checking", "installing", "authorizing")
+                or any(s.get("ours") for s in self.state["billing"].get("sessions") or []))
+
+    def account_switch(self, account_id):
+        with self.lock:
+            if not isinstance(account_id, str) or not self.accounts.home(account_id):
+                return {"ok": False, "code": "unknown_account"}
+            if self._account_busy():
+                return {"ok": False, "code": "account_busy"}
+            if self.colab.where == "wsl":
+                return {"ok": False, "code": "account_unsupported"}
+            try:
+                self._account_switch_locked(account_id)
+            except OSError:
+                return {"ok": False, "code": "account_error"}
+            return {"ok": True, "code": "account_switched"}
+
+    def _account_switch_locked(self, account_id):
+        if not self.accounts.switch(account_id):
+            return False
+        self.colab.account_home = self.accounts.home(account_id)
+        self.colab._set(stage="checking", account=None, verified=None, error=None)
+        self.colab.settled_event.clear()
+        self.state.update(balance=None, confirm=None, vm=None, selected=None, live_model=None,
+                          endpoint=dict(NO_ENDPOINT), link=dict(NO_LINK),
+                          billing={"count": None, "sessions": [], "raw": "", "checked_at": None, "ok": None})
+        self.known_endpoint = None
+        self.last_session_count = None
+        self.sessions_failed = False
+        self.absent_since = None
+        self.epoch += 1
+        threading.Thread(target=self._probe_cli, daemon=True).start()
+        return True
+
+    @account_operation
     def colab_install(self) -> dict:
         return self.colab.install()
 
+    @account_operation
     def colab_connect(self) -> dict:
         return self.colab.connect()
 
+    @account_operation
     def colab_cancel(self) -> dict:
         return self.colab.cancel()
 
+    @account_operation
     def colab_check(self) -> dict:
         return self.colab.check()
 
+    @account_operation
     def colab_disconnect(self) -> dict:
         """Sign out -- unless a card is billing: without the token nothing here could
         stop it any more, and it would bill until Colab reclaims it."""

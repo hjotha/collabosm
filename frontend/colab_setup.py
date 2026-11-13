@@ -98,6 +98,7 @@ class ColabSetup:
                  use_wsl: bool | None = None):
         self.root = os.path.abspath(root)
         self.distro = distro
+        self.account_home = None
         self.home = home or os.path.join(os.path.expanduser("~"), ".collabosm")
         self.venv = os.path.join(self.home, "colab-cli")
         self.fake = (fake if fake in FAKE_STAGES else "connected") if fake else None
@@ -164,7 +165,7 @@ class ColabSetup:
         with self.lock:
             where, py = self.where, self.py
         if where == "native" and py:
-            return [py, path] + list(args)
+            return ([py, os.path.join(self.root, "scripts", "account_exec.py"), self.account_home, path] if self.account_home else [py, path]) + list(args)
         return ["wsl.exe", "-d", self.distro, "--", "bash", "-lc",
                 "%s %s %s" % (WSL_PY, shlex.quote(_wsl_path(path)),
                               " ".join(shlex.quote(str(a)) for a in args))]
@@ -178,7 +179,7 @@ class ColabSetup:
         with self.lock:
             where, py = self.where, self.py
         if where == "native" and py:
-            return [py, "-u", path] + list(args)
+            return ([py, "-u", os.path.join(self.root, "scripts", "account_exec.py"), self.account_home, path] if self.account_home else [py, "-u", path]) + list(args)
         return ["wsl.exe", "-d", self.distro, "--", "bash", "-lc",
                 "%s -u %s %s" % (WSL_PY, shlex.quote(_wsl_path(path)),
                                  " ".join(shlex.quote(str(a)) for a in args))]
@@ -280,6 +281,7 @@ class ColabSetup:
             stage = self.state["stage"]
             if stage in ("installing", "authorizing"):
                 return {"ok": False, "code": "colab_busy", "stage": stage}
+            self.state["stage"] = "checking"
         threading.Thread(target=self._after_change, daemon=True).start()
         return {"ok": True, "code": "colab_checking"}
 

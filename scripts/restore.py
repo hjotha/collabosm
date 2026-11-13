@@ -6,7 +6,7 @@ Why this script exists
 1. The local session record is disposable. `~/.config/colab-cli/sessions.json` is
    pruned whenever the runtime proxy token lapses, and the CLI then reports
    "No active sessions found" while the VM is still running and still billing.
-   This re-attaches from server truth (`list_assignments`) instead of re-creating.
+   A session can be re-attached only when its recorded endpoint matches server truth.
    Observed twice on 2026-09-24, once mid-run with /content fully intact.
 
 2. `colab new --gpu A100` never sends `shape`, so it is a lottery between
@@ -17,16 +17,16 @@ Why this script exists
    attempts gave 40 GB. This requests HIGH_RAM explicitly (google-colab-cli#47:
    Shape.HIGH_RAM exists and machineShape is parsed, but is never sent).
 
-3. A 40 GB box is worse than no box, because you pay for the probe. So the shape is
-   verified immediately and an unsuitable runtime is STOPPED before anything is
-   downloaded -- about 1 minute, ~0.13 CU, instead of ~10 CU of wasted setup.
+3. Verify VRAM before downloading. An unsuitable newly-created runtime is stopped;
+   a pre-existing one is left running so this script cannot stop another workload.
 
 Deliberately NOT done here: no keep-alive daemon is started. On a metered plan the
 right default is "use it, then stop it"; a keep-alive turns a 2 h session into 24 h.
 Pass --keepalive only when you are actively working and want the VM held open.
 
 Exit codes: 0 ok | 2 bad args | 3 too many assignments | 4 assign failed
-            5 cannot read assignments | 6 unsuitable box (stopped) | 7 timeout
+            5 cannot read assignments | 6 unsuitable box | 7 timeout
+            12 unrecognized compatible assignment; explicit --force-new required
 """
 from __future__ import annotations
 
@@ -173,6 +173,8 @@ def create_high_ram(state, SessionState, name, accelerator, shape_code):
     finally:
         C.Client._build_assign_url = orig
 
+    # Emit ownership before registration or verification can fail.
+    print("COLLABOSM_CREATED_ENDPOINT %s" % res.endpoint, flush=True)
     register(state, SessionState, name, res.endpoint, res.runtime_proxy_info.token,
              res.runtime_proxy_info.url, accelerator.value, shape_code, assignment=res)
     granted = "?"
@@ -229,7 +231,7 @@ def main():
     ap.add_argument("--shape", choices=["hm", "st"], default="hm",
                     help="hm = HIGH_RAM (80 GB VRAM / 167 GB RAM), st = standard (40 GB)")
     ap.add_argument("--min-vram-gib", type=float, default=70.0,
-                    help="refuse and stop the box below this (a 40 GB box measures ~39)")
+                    help="refuse a box below this and stop it only if newly created")
     ap.add_argument("--max-vram-gib", type=float,
                     help="refuse a newly-created box above this VRAM size")
     ap.add_argument("--colab", default=os.environ.get("COLAB"),
@@ -237,7 +239,7 @@ def main():
     ap.add_argument("--keepalive", action="store_true",
                     help="hold the VM open (bad on a metered plan)")
     ap.add_argument("--force-new", action="store_true",
-                    help="create even if an unclaimed assignment is live")
+                    help="create despite an unrecognized compatible assignment")
     ap.add_argument("--no-verify", action="store_true")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
@@ -278,30 +280,24 @@ def main():
         maybe_keepalive(state, args.name, a.endpoint, args.keepalive)
         endpoint, granted, created = a.endpoint, attached_shape(a), False
     else:
-        # ---- 2. adopt an orphaned assignment instead of creating another one
-        adopt = [a for a in live
-                 if a.endpoint not in caught
-                 and getattr(getattr(a, "accelerator", None), "value", "") == args.accelerator]
-        if adopt and not args.force_new:
-            a = adopt[0]
-            keep_alive(state.client, a.endpoint)
-            register(state, SessionState, args.name, a.endpoint, a.runtime_proxy_info.token,
-                     a.runtime_proxy_info.url, args.accelerator, attached_shape(a), assignment=a)
-            print("[restore] adopted orphaned assignment %s (no new VM, no new billing)"
-                  % describe(a))
-            maybe_keepalive(state, args.name, a.endpoint, args.keepalive)
-            endpoint, granted, created = a.endpoint, attached_shape(a), False
-        else:
-            for a in live:
-                mark = " (claimed by another local session)" if a.endpoint in caught else ""
-                print("[restore] live: %s%s" % (describe(a), mark))
-            from colab_cli.commands.session import Accelerator
-            acc = getattr(Accelerator, args.accelerator.upper(), None)
-            if acc is None:
-                print("[restore] unknown accelerator %s" % args.accelerator)
-                return 2
-            endpoint, granted = create_high_ram(state, SessionState, args.name, acc, args.shape)
-            created = True
+        # An unregistered assignment can belong to another tool or machine.
+        for a in live:
+            mark = " (claimed by another local session)" if a.endpoint in caught else ""
+            print("[restore] live: %s%s" % (describe(a), mark))
+        unrecognized = [a for a in live if a.endpoint not in caught
+                        and (getattr(getattr(a, "accelerator", None), "value", "") or "").upper()
+                        == args.accelerator.upper()]
+        if unrecognized and not args.force_new:
+            print("[restore] !! unrecognized compatible VM exists; refusing to adopt it or create"
+                  " another without --force-new")
+            return 12
+        from colab_cli.commands.session import Accelerator
+        acc = getattr(Accelerator, args.accelerator.upper(), None)
+        if acc is None:
+            print("[restore] unknown accelerator %s" % args.accelerator)
+            return 2
+        endpoint, granted = create_high_ram(state, SessionState, args.name, acc, args.shape)
+        created = True
 
     result = {"name": args.name, "endpoint": endpoint, "granted_shape": granted,
               "created": created}
@@ -331,10 +327,12 @@ def main():
                       % (vram, args.min_vram_gib))
                 print("[restore]    Its weights and cache must be VRAM-resident, so this box")
                 print("[restore]    cannot load it at all (Flash-Next: ~63.6 GiB of weights).")
-                if created or args.shape == "hm":
+                if created:
                     print("[restore]    stopping %s now, before any download; exit 6" % args.name)
                     stop_session(colab, args.name)
                     result["stopped"] = True
+                else:
+                    print("[restore]    leaving the pre-existing VM running")
                 print("[restore]    re-run this script to draw a new box; the lottery is real.")
                 if args.json:
                     print(json.dumps(result))

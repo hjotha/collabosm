@@ -372,6 +372,16 @@ class Handler(BaseHTTPRequestHandler):
             self.log_message("refused POST %s: %s", path, message)
             return self._json(code, {"error": {"message": message,
                                                "type": "cross_site_refused"}})
+        if path in ("/control/accounts/create", "/control/accounts/switch"):
+            try:
+                body = json.loads(raw or b"{}")
+                if not isinstance(body, dict):
+                    raise ValueError("expected object")
+            except (ValueError, TypeError):
+                return self._json(400, {"error": {"message": "bad json"}})
+            res = (CONTROL.account_create(body.get("label")) if path.endswith("create")
+                   else CONTROL.account_switch(body.get("id")))
+            return self._json(200 if res.get("ok") else 409, res)
         if path == "/control/select":
             try:
                 body = json.loads(raw or b"{}")

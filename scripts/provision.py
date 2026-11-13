@@ -310,16 +310,27 @@ def cmd_down(a) -> int:
                        session, endpoint], timeout=120)
         for line in out.splitlines():
             print("[down] " + line, flush=True)
+        if rc != 0 or not re.search(r"^KEEPALIVE ok " + re.escape(endpoint) + r"(?:\s|$)", out, re.M):
+            print("[down] endpoint not confirmed; refusing to stop by session name", flush=True)
+            return 1
     print("[down] stopping '%s' ..." % session, flush=True)
     rc, out = colab(["stop", "-s", session], timeout=300)
     print(out.rstrip("\n"), flush=True)
-    if rc != 0:
+    stop_rc = rc
+    if stop_rc != 0:
         print("[down] stop returned nonzero", flush=True)
     print("[down] remaining server-side assignments:", flush=True)
     rc, out = colab(["sessions"], timeout=120)
     indented(out)
     print(DOWN_TRAILER % (os.environ.get("CU_PER_HOUR") or "6.77"), flush=True)
-    return 0
+    answered = "No active sessions found" in out or bool(re.search(r"^\[.+?\]\s+\S+\s+\|\s+Hardware:", out, re.M))
+    still_listed = ((endpoint and re.search(r"^\[.+?\]\s+" + re.escape(endpoint) + r"\s+\|", out, re.M))
+                    or re.search(r"^\[" + re.escape(session) + r"\]\s+", out, re.M))
+    if stop_rc == 0 and rc == 0 and answered and not still_listed:
+        print("COLLABOSM_STOP_OK", flush=True)
+        return 0
+    print("[down] stop could not be verified against active sessions", flush=True)
+    return stop_rc or rc or 1
 
 
 def cmd_fetch(a) -> int:

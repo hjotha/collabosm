@@ -572,6 +572,16 @@ const I18N = {
     'colab.disconnect.confirm': 'Disconnect this Google account from collabosm? The Colab CLI on this computer is signed out too.',
     'gpus.need_colab': 'Finish the Colab section above to start a card.',
     'session.ours': 'ours',
+    'session.external': 'other / unrecognized', 'session.unknown': 'Unknown name',
+    'session.active': 'Active VMs on this account', 'session.none': 'No active VMs found',
+    'accounts.label': 'Colab accounts', 'accounts.add': 'Add account',
+    'accounts.name': 'Name for the new account:', 'accounts.current': 'Current account',
+    'accounts.switch': 'Switch to {name}',
+    'code.account_created': 'Account added. Connect it below.', 'code.account_switched': 'Account switched.',
+    'code.invalid_label': 'Choose a valid account name.', 'code.unknown_account': 'Account not found.',
+    'code.account_busy': 'Wait until the current operation finishes before switching accounts.',
+    'code.account_unsupported': 'Multiple accounts are not available in this environment.',
+    'code.account_error': 'Could not change accounts: {err}',
     'det.command': 'Command it runs', 'det.command.none': 'Generated when you first start a recipe.',
     'det.billing': 'Raw billing output', 'det.billing.none': 'Not probed yet.',
     'sec.log': 'Log', 'log.empty': 'Nothing yet.',
@@ -826,6 +836,15 @@ const I18N = {
     'colab.disconnect.confirm': '要把这个 Google 账号从 collabosm 断开吗？这台电脑上的 Colab CLI 也会一起退出登录。',
     'gpus.need_colab': '先完成上方的 Colab 设置，才能开机。',
     'session.ours': '我们的',
+    'session.external': '其他 / 未识别', 'session.unknown': '名称未知',
+    'session.active': '此账户的活动虚拟机', 'session.none': '未发现活动虚拟机',
+    'accounts.label': 'Colab 账户', 'accounts.add': '添加账户',
+    'accounts.name': '新账户名称：', 'accounts.current': '当前账户',
+    'accounts.switch': '切换到 {name}',
+    'code.account_created': '账户已添加。请在下方连接。', 'code.account_switched': '已切换账户。',
+    'code.invalid_label': '请选择有效的账户名称。', 'code.unknown_account': '找不到账戶。',
+    'code.account_busy': '请等待当前操作完成后再切换账户。',
+    'code.account_unsupported': '此环境不支持多账户。', 'code.account_error': '无法更改账户：{err}',
     'det.command': '要跑的命令', 'det.command.none': '第一次启动配方时生成。',
     'det.billing': '服务端账目原文', 'det.billing.none': '还没探测。',
     'sec.log': '日志', 'log.empty': '暂无。',
@@ -1079,6 +1098,15 @@ const I18N = {
     'colab.disconnect.confirm': 'この Google アカウントを collabosm から切断しますか？このコンピューター の Colab CLI もログアウトします。',
     'gpus.need_colab': '上の Colab セクションを完了するとカードを起動できます。',
     'session.ours': '自分の',
+    'session.external': 'その他 / 未認識', 'session.unknown': '名前不明',
+    'session.active': 'このアカウントの稼働中 VM', 'session.none': '稼働中の VM はありません',
+    'accounts.label': 'Colab アカウント', 'accounts.add': 'アカウントを追加',
+    'accounts.name': '新しいアカウント名：', 'accounts.current': '現在のアカウント',
+    'accounts.switch': '{name} に切り替え',
+    'code.account_created': 'アカウントを追加しました。下で接続してください。', 'code.account_switched': 'アカウントを切り替えました。',
+    'code.invalid_label': '有効なアカウント名を入力してください。', 'code.unknown_account': 'アカウントが見つかりません。',
+    'code.account_busy': '現在の操作が完了してから切り替えてください。',
+    'code.account_unsupported': 'この環境では複数アカウントを利用できません。', 'code.account_error': 'アカウントを変更できません：{err}',
     'det.command': '実行するコマンド', 'det.command.none': '最初にレシピを起動すると生成されます。',
     'det.billing': 'サーバー側の課金出力', 'det.billing.none': 'まだ確認していません。',
     'sec.log': 'ログ', 'log.empty': 'まだありません。',
@@ -1432,7 +1460,16 @@ function colabHTML() {
   const c = colab(), err = c.error || {};
   const row = (...b) => '<div class="row">' + b.join('') + '</div>';
   const small = (act, label, icon, attrs) => btn(act, label, '', icon, attrs);
-  let h = '<ol class="guide">';
+  let h = '';
+  if (Array.isArray(c.accounts)) {
+    h += '<div class="sub">' + ico('user') + '<span>' + esc(t('accounts.label')) + '</span></div>';
+    h += row(...c.accounts.map((a) => a.id === c.active_account
+      ? '<span class="tag solid" title="' + esc(t('accounts.current')) + '">' + esc(a.label) + '</span>'
+      : small('account-switch', a.label, 'user', 'data-account="' + esc(a.id) + '" title="'
+        + esc(t('accounts.switch', { name: a.label })) + '"')),
+      small('account-add', t('accounts.add'), 'user'));
+  }
+  h += '<ol class="guide">';
 
   // 1 -- the Colab CLI
   if (c.stage === 'checking') {
@@ -1643,7 +1680,8 @@ function moneyHTML() {
     + (b ? '<span class="tag">' + esc(t('money.src')) + '</span>' : '') + '</div>'
     + '<div class="figure' + (b ? '' : ' none') + '" data-t="balance" tabindex="0"><b data-v="balance"></b><span>CU</span></div>'
     + '<div class="chips">' + chip('flame', 'burn') + chip('battery', 'left')
-    + (st.ledger_open ? chip('receipt', 'session') : '') + chip('cloud', 'billing') + '</div></div>';
+    + (st.ledger_open ? chip('receipt', 'session') : '') + chip('cloud', 'billing') + '</div>'
+    + '<p class="fine">' + esc(t('session.active')) + '</p>' + sessionsHTML(st.billing || {}) + '</div>';
 }
 
 function statusHTML() {
@@ -1821,14 +1859,19 @@ function details(id, summary, body) {
     + esc(summary) + '</summary><pre>' + esc(body) + '</pre></details>';
 }
 
+function sessionsHTML(bill) {
+  const sessions = bill.sessions || [];
+  return (bill.ok === false ? '<p class="warn">' + esc(t('billing.stale')) + '</p>' : '')
+    + (sessions.length ? '<ul class="list">' + sessions.map((x) => '<li>' + ico('cloud')
+        + '<span>' + esc((x.name && x.name !== '?' ? x.name : t('session.unknown')) + ' · ' + (x.hardware || '?')) + '</span>'
+        + '<span class="tag' + (x.ours ? ' solid' : '') + '">' + esc(t(x.ours ? 'session.ours' : 'session.external')) + '</span>'
+        + '<span class="mono" title="' + esc(x.endpoint || '') + '">' + esc(x.endpoint || '') + '</span></li>').join('') + '</ul>'
+       : '<p class="fine">' + esc(t(bill.count == null ? 'billing.unknown' : 'session.none')) + '</p>');
+}
+
 function connHTML() {
   const cli = st.cli || {}, bill = st.billing || {};
-  const sessions = bill.sessions || [];
-  // where the CLI is and whom it is signed in as: the Colab guide at the top says it
-  return (sessions.length ? '<ul class="list">' + sessions.map((x) => '<li>' + ico('cloud')
-        + '<span>' + esc((x.name || '?') + ' · ' + (x.hardware || '?')) + '</span>'
-        + (x.ours ? '<span class="tag solid">' + esc(t('session.ours')) + '</span>' : '')
-        + '<span class="mono">' + esc(x.endpoint || '') + '</span></li>').join('') + '</ul>' : '')
+  return sessionsHTML(bill)
     + details('cmd', t('det.command'), cli.command || t('det.command.none'))
     + details('bill', t('det.billing'), bill.raw || t('det.billing.none'));
 }
@@ -2069,7 +2112,7 @@ async function post(path, body) {
                                   body: JSON.stringify(body || {}) });
     let j = {};
     try { j = await r.json(); } catch (e) { /* not JSON */ }
-    if (!r.ok && j && j.error) return { code: 'error', err: j.error.message || String(r.status) };
+    if (!r.ok && j && j.error && !j.code) return { code: 'error', err: j.error.message || String(r.status) };
     return j;
   } catch (e) {
     return { code: 'error', err: String(e) };
@@ -2157,6 +2200,14 @@ document.addEventListener('click', async (e) => {
   }
   if (pending) return;
   hideTip();
+  if (act === 'account-switch') {
+    return say(await post('/control/accounts/switch', { id: b.dataset.account }));
+  }
+  if (act === 'account-add') {
+    const label = prompt(t('accounts.name'));
+    if (label === null || !label.trim()) return;
+    return say(await post('/control/accounts/create', { label: label.trim() }));
+  }
   if (act.startsWith('colab-')) {
     const what = act.slice('colab-'.length);
     if (what === 'disconnect' && !confirm(t('colab.disconnect.confirm'))) return;
