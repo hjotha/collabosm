@@ -44,7 +44,7 @@ ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]*$")
 # What the VM keeps besides the recipe's own keys, when the caller sets them: they are
 # read by bootstrap.sh, serve.sh and api_server.py, and a setting that stops at the
 # laptop (`THINKING_DEFAULT=1 bash scripts/up.sh`) silently does nothing.
-VM_EXTRA = ("RUNTIME", "PORT", "TUNNEL_TOKEN", "PUBLIC_URL", "THINKING_DEFAULT",
+VM_EXTRA = ("RUNTIME", "PORT", "TUNNEL_TOKEN", "PUBLIC_URL", "NO_TUNNEL", "THINKING_DEFAULT",
             "MAX_NEW_TOKENS", "IMAGE_URLS", "MAX_IMAGE_BYTES", "MAX_IMAGES",
             "HF_HUB_DISABLE_XET")
 

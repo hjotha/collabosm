@@ -285,6 +285,14 @@ def cmd_up(a) -> int:
             say("!! serve.sh reported stage=%s - see /content/serve.log on the VM" % stage)
             return 8
         if stage == "ready_no_tunnel":
+            if os.environ.get("NO_TUNNEL", "") in ("1", "true", "yes"):
+                say("READY (NO_TUNNEL: local only, no public tunnel)")
+                for line in out.splitlines():
+                    if line.startswith(("tunnel:", "models:")):
+                        print("  " + line, flush=True)
+                say("when you are done: python %s down   (stopping is the whole point)"
+                    % os.path.join(HERE, "provision.py"))
+                return 0
             say("!! the API is healthy on the VM but no tunnel URL was published - see /content/tunnel.log")
             return 9
         rc, out = colab(["exec", "-s", session, "--timeout", "60", "-f",

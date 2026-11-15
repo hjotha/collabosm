@@ -333,6 +333,11 @@ Anyone who has both can use your GPU, and your compute units, until you stop it.
 time you start a GPU. (Nothing on this computer needs the real key: collabosm puts it into every
 request itself, so the page never holds it until you press **Copy key**.)
 
+To run **without** the public tunnel — local-only, no `.trycloudflare.com` address — start with
+`NO_TUNNEL=1` in the environment: `NO_TUNNEL=1 python scripts/provision.py up`. The API then serves
+only on `127.0.0.1:3020/v1` (and `127.0.0.1:$PORT` on the VM); `provision.py up` reports success
+without a public URL.
+
 ---
 
 ## 6. Troubleshooting

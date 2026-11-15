@@ -79,25 +79,32 @@ done
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader | sed 's/^/  /'
 [ "${ENGINE:-exl3}" = "strata" ] && strata_warm   # its n-gram table into RAM (strata.sh)
 
-[[ -x /content/cloudflared ]] || curl -fsSL -o /content/cloudflared \
-  https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-  && chmod +x /content/cloudflared
-# TUNNEL_TOKEN=<token from `cloudflared tunnel token <name>`> gives a STABLE hostname
-# (a named tunnel with its public hostname already pointing at http://localhost:$PORT).
-# Without it we get a quick tunnel, whose hostname changes on every restart.
-if [[ -n "${TUNNEL_TOKEN:-}" ]]; then
-  say "starting the NAMED tunnel (stable hostname)"
-  nohup /content/cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN" > "$TUNNEL_LOG" 2>&1 &
-  URL="${PUBLIC_URL:-}"
-  sleep 5
+URL=""
+# NO_TUNNEL=1 skips the cloudflared tunnel entirely: the API stays local-only on :$PORT and
+# serve.sh reports ready_no_tunnel. provision.py treats that stage as success when NO_TUNNEL
+# is set, so a box that never publishes a public URL still comes up cleanly.
+if [[ "${NO_TUNNEL:-0}" =~ ^(1|true|yes)$ ]]; then
+  say "NO_TUNNEL set: no public tunnel (local only on :$PORT)"
 else
-  nohup /content/cloudflared tunnel --url "http://127.0.0.1:$PORT" --no-autoupdate > "$TUNNEL_LOG" 2>&1 &
-  URL=""
-  for _ in $(seq 1 45); do
-    URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | head -1 || true)
-    [[ -n "$URL" ]] && break
-    sleep 4
-  done
+  [[ -x /content/cloudflared ]] || curl -fsSL -o /content/cloudflared \
+    https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+    && chmod +x /content/cloudflared
+  # TUNNEL_TOKEN=<token from `cloudflared tunnel token <name>`> gives a STABLE hostname
+  # (a named tunnel with its public hostname already pointing at http://localhost:$PORT).
+  # Without it we get a quick tunnel, whose hostname changes on every restart.
+  if [[ -n "${TUNNEL_TOKEN:-}" ]]; then
+    say "starting the NAMED tunnel (stable hostname)"
+    nohup /content/cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN" > "$TUNNEL_LOG" 2>&1 &
+    URL="${PUBLIC_URL:-}"
+    sleep 5
+  else
+    nohup /content/cloudflared tunnel --url "http://127.0.0.1:$PORT" --no-autoupdate > "$TUNNEL_LOG" 2>&1 &
+    for _ in $(seq 1 45); do
+      URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$TUNNEL_LOG" | head -1 || true)
+      [[ -n "$URL" ]] && break
+      sleep 4
+    done
+  fi
 fi
 
 # Everything the frontend needs to couple, in one file: it is fetched with a single
