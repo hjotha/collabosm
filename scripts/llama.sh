@@ -43,6 +43,10 @@ PY
     ldd "$bin" "$(dirname "$bin")/libggml-cuda.so" 2>&1 | grep 'not found' >&2
     return 1
   fi
+  if [ "${LLAMA_STREAM_VRAM:-1}" = "1" ]; then
+    echo "[llama] direct HF->VRAM streaming enabled (--hf-stream-vram); skipping pre-download to disk"
+    return 0
+  fi
   status "stage=weights"
   python - <<'PY' || return 1
 import concurrent.futures, os, urllib.request
@@ -199,11 +203,103 @@ EOF
 }
 
 llama_start() {
-  local bin
+  local bin model_url
   bin=$(find /content/collabosm-llama/llama -maxdepth 4 -type f -name llama-server -print -quit)
-  [ -n "$bin" ] && [ -f "$MODEL_DIR/$LLAMA_FILE" ] || return 1
+  [ -n "$bin" ] || return 1
+  if [ "${LLAMA_STREAM_VRAM:-1}" != "1" ] && [ ! -f "$MODEL_DIR/$LLAMA_FILE" ]; then
+    return 1
+  fi
   export LD_LIBRARY_PATH="$(dirname "$bin"):/usr/local/cuda/lib64:/usr/lib64-nvidia:${LD_LIBRARY_PATH:-}"
   llama_write_ini || return 1
+  model_url="https://huggingface.co/${MODEL_REPO}/resolve/${MODEL_REVISION:-main}/${LLAMA_FILE}"
   LLAMA_PROC='collabosm-llama/llama.*/llama-server'
-  nohup "$bin" --models-preset /content/collabosm-llama/t4-production.ini --models-max 1 --host 127.0.0.1 --port "$PORT" --api-key-file "$KEY_FILE" > "$LOG" 2>&1 < /dev/null &
+  local stream_args=()
+  if [ ! -f "$MODEL_DIR/$LLAMA_FILE" ]; then
+    stream_args=(
+      --model-url "$model_url"
+      --hf-stream-vram
+      --hf-download-threads "${LLAMA_HF_THREADS:-8}"
+      --hf-stream-chunk-mb "${LLAMA_HF_CHUNK_MB:-8}"
+      --hf-stream-disk-mode "${LLAMA_HF_DISK_MODE:-background}"
+    )
+  fi
+  nohup "$bin" \
+    --model "$MODEL_DIR/$LLAMA_FILE" \
+    "${stream_args[@]}" \
+    --alias "$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B" \
+    --load-mode none \
+    --parallel 1 \
+    --device CUDA0 \
+    --flash-attn on \
+    --fit off \
+    --ctx-checkpoints 1 \
+    --metrics \
+    --slots \
+    --cache-prompt \
+    --no-context-shift \
+    --gpu-layers 99 \
+    --cache-type-k kvarn4 \
+    --cache-type-v kvarn4 \
+    --spec-draft-type-k kvarn4 \
+    --spec-draft-type-v kvarn4 \
+    --cache-ram "${LLAMA_CACHE_RAM:-8192}" \
+    --slot-save-auto \
+    --slot-save-max-count "${LLAMA_SLOT_SAVE_MAX_COUNT:-64}" \
+    --slot-save-max-mb "${LLAMA_SLOT_SAVE_MAX_MB:-81920}" \
+    --slot-save-path /content/collabosm-llama/slot-cache/ \
+    --slot-save-block 256 \
+    --slot-save-split-prefix \
+    --native-snapshot-auto-save \
+    --native-snapshot-auto-restore \
+    --adaptive-direct-pure-disk-restore \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --top-k 20 \
+    --min-p 0.05 \
+    --reasoning-effort low \
+    --kvarn-window-chunk 4096 \
+    --cuda-graph-recovery-headroom-mb 18 \
+    --ovf-packed-view \
+    --ovf-cont-kv \
+    --ovf-tail-local-cuda \
+    --ovf-qwht-cuda \
+    --no-vk-get-rows-q4-0-f16vec \
+    --no-warmup \
+    --spec-type draft-mtp \
+    --spec-dm-controller off \
+    --spec-draft-p-min 0.65 \
+    --spec-draft-p-min-s 0.65 \
+    --spec-draft-p-min-m 0.65 \
+    --ctx-size-s "${TIER_S_CTX:-150528}" \
+    --mtp-s-max-tokens "${TIER_S_CTX:-150528}" \
+    --batch-size-s 2048 \
+    --ubatch-size-s 256 \
+    --cache-type-k-s kvarn4 \
+    --cache-type-v-s kvarn4 \
+    --spec-draft-type-k-s kvarn4 \
+    --spec-draft-type-v-s kvarn4 \
+    --spec-draft-n-max-s 2 \
+    --ctx-size-m "${TIER_M_CTX:-150528}" \
+    --mtp-m-max-tokens "${TIER_M_CTX:-150528}" \
+    --batch-size-m 2048 \
+    --ubatch-size-m 256 \
+    --cache-type-k-m kvarn4 \
+    --cache-type-v-m kvarn4 \
+    --spec-draft-type-k-m kvarn4 \
+    --spec-draft-type-v-m kvarn4 \
+    --spec-draft-n-max-m 2 \
+    --ctx-size-l "${LLAMA_CONTEXT:-200704}" \
+    --batch-size-l 2048 \
+    --ubatch-size-l 256 \
+    --cache-type-k-l kvarn4 \
+    --cache-type-v-l kvarn4 \
+    --spec-draft-type-k-l kvarn4 \
+    --spec-draft-type-v-l kvarn4 \
+    --spec-draft-n-max-l 0 \
+    --ctx-size-xl 0 \
+    --ctx-size-xxl 0 \
+    --ctx-size-xxxl 0 \
+    --host 127.0.0.1 \
+    --port "$PORT" \
+    --api-key-file "$KEY_FILE" > "$LOG" 2>&1 < /dev/null &
 }

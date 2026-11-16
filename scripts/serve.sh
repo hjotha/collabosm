@@ -65,15 +65,15 @@ else
   PROC='/content/api_server.py'
 fi
 
-polls=120
-[[ "${ENGINE:-exl3}" == "maya" ]] && polls=180  # first Maya-L expert-tier warm-up took ~8 min once
+polls=600
+[[ "${ENGINE:-exl3}" == "maya" ]] && polls=900  # first Maya-L expert-tier warm-up took ~8 min once
 for _ in $(seq 1 "$polls"); do
   code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 "http://127.0.0.1:$PORT/health" || true)
   [[ "$code" == "200" ]] && break
   if ! pgrep -f "$PROC" >/dev/null; then
     say "!! the model server died"; tail -80 "$LOG"; status "stage=serve_failed"; exit 1
   fi
-  sleep 5
+  sleep 1
 done
 [[ "${code:-}" == "200" ]] || { say "!! never became healthy"; tail -80 "$LOG"; status "stage=serve_timeout"; exit 1; }
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader | sed 's/^/  /'
