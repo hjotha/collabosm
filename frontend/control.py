@@ -116,6 +116,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.p
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import recipe as registry  # noqa: E402
 from colab_setup import ColabSetup  # noqa: E402
+import cliproxy_sync  # noqa: E402
 from accounts import Accounts  # noqa: E402
 
 REGISTRY = registry.load()
@@ -703,8 +704,6 @@ class Control:
             bal = self.state.get("balance") or {}
             left = bal["cu"] if bal.get("cu") is not None else self.state["cu_left"]
             need = round(recipe["cu_per_hour"] * ((recipe["eta_min"] + 5) / 60.0), 2)
-            if recipe.get("free_tier") and (account_id != "free" or bal.get("cu") is None or bal["cu"] > 0):
-                return {"ok": False, "code": "free_account_required"}
             if not recipe.get("free_tier") and left < max(3.0, need):
                 return {"ok": False, "code": "budget", "cu_left": round(left, 1),
                         "cu_need": round(need, 1)}
@@ -1036,6 +1035,16 @@ class Control:
                           server=None, machine=None, machine_source=None, vm=None,
                           idle_policy="frontend", live_model=None, keepalive=dict(NO_HOLD),
                           heartbeat=dict(NO_BEAT))
+        self._sync_cliproxy(None, disabled=True)
+
+    def _sync_cliproxy(self, model_id, disabled=False) -> None:
+        if self.fake:
+            return
+        try:
+            if cliproxy_sync.sync_cliproxy(model_id, disabled=disabled):
+                self._log("[fe] cliproxyapi synced (model=%s, disabled=%s)" % (model_id or "-", disabled))
+        except Exception as exc:
+            self._log("[fe] cliproxyapi sync failed: %r" % exc)
 
     def _do_stop(self, reason: str, cu: float) -> None:
         if not self._run_down():
@@ -1365,6 +1374,7 @@ class Control:
             if why != "rediscover":
                 self.last_activity = max(self.last_activity, now)   # a fresh idle clock
         self._absorb_server(server, url)
+        self._sync_cliproxy(ids[0] if ids else recipe["model"], disabled=False)
         if why != "rediscover":
             self._balance_soon()
         if moved:
