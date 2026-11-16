@@ -52,7 +52,7 @@ import webbrowser
 # run on 0.6, whose record lacks the token's expiry and which still had a keep-alive
 # ping: scripts/colab_record.py. 0.7.4 also pins jupyter-kernel-client, whose 1.0
 # release left a fresh 0.6.0 install unable to run `colab exec`.)
-PIN = "google-colab-cli==0.7.4"
+PIN = "google-colab-cli==0.8.0"
 PIN_VERSION = PIN.split("==")[1]
 WSL_PY = "$HOME/.local/share/uv/tools/google-colab-cli/bin/python"
 FAKE_ACCOUNT = "rehearsal@example.com"
