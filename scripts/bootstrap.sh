@@ -45,7 +45,10 @@ status() { echo "$*" > /content/STATUS; }
 # ---------------------------------------------------------------- the image
 say "image probe"
 status "stage=probing"
-python - <<'PY' || fail "image probe"
+if [ "${ENGINE:-exl3}" = "llama" ]; then
+  python -c "import sys; print('python', sys.version.split()[0], '(llama native)')" || fail "image probe"
+else
+  python - <<'PY' || fail "image probe"
 import json, sys
 try:
     import torch
@@ -53,6 +56,7 @@ try:
 except Exception as e:
     raise SystemExit("torch missing: %r" % e)
 PY
+fi
 nvidia-smi --query-gpu=name,driver_version,compute_cap --format=csv,noheader | sed 's/^/  /' || true
 
 # ------------------------------------------------------ a Strata recipe instead
@@ -113,7 +117,9 @@ else
     mv -f "$MODEL_DIR/config.json.orig" "$MODEL_DIR/config.json"
   fi
   HF_HUB_DISABLE_XET=${HF_HUB_DISABLE_XET:-0} python - <<PY || fail "model download"
-import os
+import importlib.util, os
+if importlib.util.find_spec("hf_transfer") is not None:
+    os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
 from huggingface_hub import snapshot_download
 p = snapshot_download(
     repo_id=os.environ["MODEL_REPO"],

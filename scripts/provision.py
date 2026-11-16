@@ -40,6 +40,7 @@ import os
 import re
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 
@@ -60,6 +61,7 @@ KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "maya.sh", "lla
 # matching "bash /content/serve.sh", and this launcher's own command line would match.
 START_BOOTSTRAP = '''import subprocess
 print(subprocess.run("rm -f /content/STATUS /content/endpoint.json /content/url.txt; "
+                     "tar -xzf /content/collabosm-kit.tar.gz -C /content && "
                      "nohup bash -lc 'source /content/collabosm_env.sh && bash /content/bootstrap.sh "
                      "&& exec bash /content/serve.sh' > /content/bootstrap.log 2>&1 & echo BOOTSTRAPPING",
                      shell=True, capture_output=True, text=True).stdout)
@@ -230,15 +232,26 @@ def cmd_up(a) -> int:
         return rc
 
     with tempfile.TemporaryDirectory(prefix="collabosm-up-") as work:
-        # ---- 2. the kit
-        say("uploading the toolkit")
-        for f in KIT:
-            src = _lf_copy(os.path.join(HERE, f), work)
-            rc, _ = colab(["upload", "-s", session, src, "/content/" + f], timeout=180)
-            if rc != 0:
-                say("  FAIL %s (upload) - refusing to continue" % f)
-                return 1
-            say("  ok   %s" % f)
+        # ---- 2. the kit + env in one tarball (1 upload instead of 9+)
+        rc, vmenv = _recipe("vmenv", rid)
+        if rc != 0:
+            say("!! could not write the launch environment for %s" % rid)
+            return 2
+        env_file = os.path.join(work, "collabosm_env.sh")
+        with open(env_file, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(vmenv)
+        kit_tgz = os.path.join(work, "collabosm-kit.tar.gz")
+        with tarfile.open(kit_tgz, "w:gz") as tf:
+            for f in KIT:
+                src = _lf_copy(os.path.join(HERE, f), work)
+                tf.add(src, arcname=f)
+            tf.add(env_file, arcname="collabosm_env.sh")
+        say("uploading toolkit bundle (%d files + env)" % len(KIT))
+        rc, _ = colab(["upload", "-s", session, kit_tgz, "/content/collabosm-kit.tar.gz"], timeout=180)
+        if rc != 0:
+            say("  FAIL collabosm-kit.tar.gz (upload) - refusing to continue")
+            return 1
+        say("  ok   collabosm-kit.tar.gz")
         beellama_zip = E.get("BEELLAMA_ZIP") or os.path.join(HERE, os.pardir, "bin", "beellama-t4-cuda.zip")
         if E.get("ENGINE") == "llama" and (not E.get("BEELLAMA_ZIP_URL") or E.get("BEELLAMA_UPLOAD") == "1") and os.path.isfile(beellama_zip):
             chunk_sz = 16 * 1024 * 1024
@@ -263,21 +276,6 @@ def cmd_up(a) -> int:
 
         # ---- 3. bootstrap it
         say("bootstrapping (runtime=%s)" % E["RUNTIME"])
-        # the recipe's launch settings as they stand now, overrides included
-        rc, vmenv = _recipe("vmenv", rid)
-        if rc != 0:
-            say("!! could not write the launch environment for %s" % rid)
-            return 2
-        env_file = os.path.join(work, "collabosm_env.sh")
-        with open(env_file, "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(vmenv)
-        # Checked: without it bootstrap never starts on a fresh box (and this would
-        # wait its full 50 paid minutes), and on a re-attached box the previous run's
-        # file is sourced, launching the old recipe under the new one's name.
-        rc, _ = colab(["upload", "-s", session, env_file, "/content/collabosm_env.sh"], timeout=120)
-        if rc != 0:
-            say("!! could not upload the launch environment - refusing to continue")
-            return 1
         starter = os.path.join(work, "start_bootstrap.py")
         with open(starter, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(START_BOOTSTRAP)
