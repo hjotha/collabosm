@@ -213,13 +213,20 @@ def cmd_up(a) -> int:
     restore_args = [cli_python(), os.path.join(HERE, "restore.py"), "-n", session,
                     "--accelerator", E["ACCELERATOR"], "--shape", E["SHAPE"],
                     "--min-vram-gib", E["MIN_VRAM_GIB"]]
+    if E.get("FALLBACK_ACCELERATORS") and E.get("STRATA_BUILD") != "1":
+        restore_args.extend(["--fallback-accelerators", E["FALLBACK_ACCELERATORS"]])
     if E.get("STRATA_BUILD") == "1":
         # This pairing is specifically the 40 GiB card, not the high-memory A100.
         restore_args.extend(["--max-vram-gib", "45"])
     rc = stream(restore_args)
     if rc != 0:
-        say("!! restore failed (rc=%s). 6 = a box below %s GiB was drawn and stopped; just re-run."
-            % (rc, E["MIN_VRAM_GIB"]))
+        reasons = {
+            3: "too many active Colab assignments on this account",
+            4: "assign failed (Colab Service Unavailable or no GPU capacity)",
+            6: "a box below %s GiB was drawn and stopped; just re-run." % E["MIN_VRAM_GIB"],
+            12: "unrecognized compatible VM already exists",
+        }
+        say("!! restore failed (rc=%s): %s" % (rc, reasons.get(rc, "see restore output above.")))
         return rc
 
     with tempfile.TemporaryDirectory(prefix="collabosm-up-") as work:

@@ -69,6 +69,9 @@ def validate(reg: dict) -> list:
                 out.append("gpu %s: no %s" % (g.get("id"), k))
         if g.get("shape") not in ("hm", "st"):
             out.append("gpu %s: shape must be hm or st" % g.get("id"))
+        fb = g.get("fallback_accelerators")
+        if fb is not None and (not isinstance(fb, list) or not all(isinstance(x, str) and x.strip() for x in fb)):
+            out.append("gpu %s: fallback_accelerators must be a list of strings" % g.get("id"))
     dirs = {}
     for m in models.values():
         for k in ("name", "repo", "revision", "dir", "served_id"):
@@ -186,6 +189,8 @@ def launch_env(reg: dict, rid: str) -> dict:
         "MTP": 1 if m.get("mtp") else 0, "NGRAM": 1 if m.get("ngram") else 0,
         "ENGINE": m.get("engine", "exl3"),
     }
+    if g.get("fallback_accelerators"):
+        env["FALLBACK_ACCELERATORS"] = ",".join(g["fallback_accelerators"])
     if m.get("engine") == "strata":
         s = m["strata"]
         env.update({"STRATA_REPO": s["repo"], "STRATA_COMMIT": s["commit"],

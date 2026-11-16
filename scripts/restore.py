@@ -158,7 +158,7 @@ def create_high_ram(state, SessionState, name, accelerator, shape_code):
             params["variant"] = variant.value
         if accelerator:
             params["accelerator"] = accelerator.value
-        if shape_code == "hm":
+        if shape_code == "hm" and getattr(accelerator, "value", "") == "A100":
             params["shape"] = shape_code      # <-- the only added field
         return requests.Request("GET", url, params=params).prepare().url
 
@@ -228,6 +228,8 @@ def main():
     ap = argparse.ArgumentParser(description="restore or create the collabosm A100-80GB box")
     ap.add_argument("-n", "--name", default="collabosm")
     ap.add_argument("--accelerator", default="A100")
+    ap.add_argument("--fallback-accelerators", default=os.environ.get("FALLBACK_ACCELERATORS", ""),
+                    help="comma-separated fallback accelerators if primary assign fails (e.g. G4,H100)")
     ap.add_argument("--shape", choices=["hm", "st"], default="hm",
                     help="hm = HIGH_RAM (80 GB VRAM / 167 GB RAM), st = standard (40 GB)")
     ap.add_argument("--min-vram-gib", type=float, default=70.0,
@@ -284,19 +286,40 @@ def main():
         for a in live:
             mark = " (claimed by another local session)" if a.endpoint in caught else ""
             print("[restore] live: %s%s" % (describe(a), mark))
+        candidates = [args.accelerator]
+        for fb in (args.fallback_accelerators or "").split(","):
+            fb = fb.strip()
+            if fb and fb.upper() not in {c.upper() for c in candidates}:
+                candidates.append(fb)
+        candidate_set = {c.upper() for c in candidates}
         unrecognized = [a for a in live if a.endpoint not in caught
                         and (getattr(getattr(a, "accelerator", None), "value", "") or "").upper()
-                        == args.accelerator.upper()]
+                        in candidate_set]
         if unrecognized and not args.force_new:
             print("[restore] !! unrecognized compatible VM exists; refusing to adopt it or create"
                   " another without --force-new")
             return 12
         from colab_cli.commands.session import Accelerator
-        acc = getattr(Accelerator, args.accelerator.upper(), None)
-        if acc is None:
-            print("[restore] unknown accelerator %s" % args.accelerator)
-            return 2
-        endpoint, granted = create_high_ram(state, SessionState, args.name, acc, args.shape)
+        endpoint = granted = None
+        last_rc = 4
+        for idx, cand in enumerate(candidates):
+            acc = getattr(Accelerator, cand.upper(), None)
+            if acc is None:
+                print("[restore] unknown accelerator %s; skipping" % cand)
+                last_rc = 2
+                continue
+            cand_shape = args.shape if cand.upper() == "A100" else "st"
+            if idx > 0:
+                print("[restore] trying fallback accelerator %s (shape %s)" % (cand, cand_shape))
+            try:
+                endpoint, granted = create_high_ram(state, SessionState, args.name, acc, cand_shape)
+                break
+            except SystemExit as exc:
+                last_rc = exc.code if isinstance(exc.code, int) else 4
+                if last_rc != 4:
+                    return last_rc
+        else:
+            return last_rc
         created = True
 
     result = {"name": args.name, "endpoint": endpoint, "granted_shape": granted,
