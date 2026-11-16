@@ -502,7 +502,7 @@
       "env": {
         "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
         "LLAMA_CONTEXT": 200704,
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-t4-19f92e9/beellama-t4-cuda.zip"
+        "BEELLAMA_ZIP_URL": "https://huggingface.co/hjotha/beellama-t4-cuda/resolve/main/beellama-t4-cuda.zip"
       },
       "facts": {
         "context": {
