@@ -290,12 +290,25 @@ def main():
         for a in live:
             mark = " (claimed by another local session)" if a.endpoint in caught else ""
             print("[restore] live: %s%s" % (describe(a), mark))
-        candidates = [args.accelerator]
+        def _parse_cand(raw: str, default_shape: str) -> tuple[str, str]:
+            if ":" in raw:
+                acc_part, shape_part = raw.split(":", 1)
+                acc_name = acc_part.strip().upper()
+                sh = shape_part.strip().lower()
+                sh = sh if sh in ("st", "hm") else default_shape
+                return acc_name, (sh if acc_name == "A100" else "st")
+            acc_name = raw.strip().upper()
+            return acc_name, (default_shape if acc_name == "A100" else "st")
+
+        candidates = [(args.accelerator.upper(), args.shape if args.accelerator.upper() == "A100" else "st")]
         for fb in (args.fallback_accelerators or "").split(","):
             fb = fb.strip()
-            if fb and fb.upper() not in {c.upper() for c in candidates}:
-                candidates.append(fb)
-        candidate_set = {c.upper() for c in candidates}
+            if not fb:
+                continue
+            pair = _parse_cand(fb, args.shape)
+            if pair[0] and pair not in candidates:
+                candidates.append(pair)
+        candidate_set = {c[0] for c in candidates}
         unrecognized = [a for a in live if a.endpoint not in caught
                         and (getattr(getattr(a, "accelerator", None), "value", "") or "").upper()
                         in candidate_set]
@@ -307,13 +320,12 @@ def main():
         endpoint = granted = None
         last_rc = 4
         attempts = max(1, args.assign_retries)
-        for idx, cand in enumerate(candidates):
-            acc = getattr(Accelerator, cand.upper(), None)
+        for idx, (cand, cand_shape) in enumerate(candidates):
+            acc = getattr(Accelerator, cand, None)
             if acc is None:
                 print("[restore] unknown accelerator %s; skipping" % cand)
                 last_rc = 2
                 continue
-            cand_shape = args.shape if cand.upper() == "A100" else "st"
             if idx > 0:
                 print("[restore] trying fallback accelerator %s (shape %s)" % (cand, cand_shape))
             for attempt in range(1, attempts + 1):

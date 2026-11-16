@@ -129,6 +129,37 @@ class RestoreSafety(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(calls, ["A100", "A100", "A100"])
 
+    def test_t4_fallback_order_tries_a100_40_then_a100_80_then_g4(self):
+        calls = []
+
+        def fake_create(state, SessionState, name, acc, shape):
+            calls.append((acc, shape))
+            if (acc, shape) == ("G4", "st"):
+                return ("g4-vm", "STANDARD")
+            raise SystemExit(4)
+
+        state = types.SimpleNamespace(
+            client=types.SimpleNamespace(list_assignments=lambda: []),
+            store=types.SimpleNamespace(get=lambda name: None))
+        fake_session = types.ModuleType("colab_cli.commands.session")
+        fake_session.Accelerator = types.SimpleNamespace(T4="T4", A100="A100", G4="G4", H100="H100")
+        modules = {"colab_cli": types.ModuleType("colab_cli"),
+                   "colab_cli.commands": types.ModuleType("colab_cli.commands"),
+                   "colab_cli.commands.session": fake_session}
+        with patch.dict(sys.modules, modules), \
+             patch.object(sys, "argv", ["restore.py", "--accelerator", "T4",
+                                        "--fallback-accelerators", "A100:st,A100:hm,G4,H100",
+                                        "--assign-retries", "1", "--assign-retry-delay", "0",
+                                        "--shape", "st", "--no-verify"]), \
+             patch.object(restore, "_import_colab_cli", return_value=(state, object)), \
+             patch.object(restore, "colab_argv", return_value=["colab"]), \
+             patch.object(restore, "claimed_endpoints", return_value=set()), \
+             patch.object(restore, "create_high_ram", side_effect=fake_create), \
+             contextlib.redirect_stdout(io.StringIO()):
+            rc = restore.main()
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, [("T4", "st"), ("A100", "st"), ("A100", "hm"), ("G4", "st")])
+
     def test_too_many_assignments_does_not_fallback(self):
         calls = []
 
