@@ -239,6 +239,27 @@ def cmd_up(a) -> int:
                 say("  FAIL %s (upload) - refusing to continue" % f)
                 return 1
             say("  ok   %s" % f)
+        beellama_zip = E.get("BEELLAMA_ZIP") or os.path.join(HERE, os.pardir, "bin", "beellama-t4-cuda.zip")
+        if E.get("ENGINE") == "llama" and os.path.isfile(beellama_zip):
+            chunk_sz = 16 * 1024 * 1024
+            say("uploading %s in 16 MiB chunks -> /content/beellama.zip" % os.path.basename(beellama_zip))
+            with open(beellama_zip, "rb") as zfh:
+                idx = 0
+                while True:
+                    buf = zfh.read(chunk_sz)
+                    if not buf:
+                        break
+                    part_name = "beellama.zip.part%03d" % idx
+                    part_path = os.path.join(work, part_name)
+                    with open(part_path, "wb") as pfh:
+                        pfh.write(buf)
+                    rc, _ = colab(["upload", "-s", session, part_path, "/content/" + part_name], timeout=300)
+                    os.remove(part_path)
+                    if rc != 0:
+                        say("  FAIL %s (upload) - refusing to continue" % part_name)
+                        return 1
+                    idx += 1
+            say("  ok   beellama.zip (%d parts)" % idx)
 
         # ---- 3. bootstrap it
         say("bootstrapping (runtime=%s)" % E["RUNTIME"])

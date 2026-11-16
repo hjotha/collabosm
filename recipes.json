@@ -497,20 +497,22 @@
       "id": "t4-free/swift-qwen38-iq3s",
       "gpu": "t4-free",
       "model": "swift-qwen38-iq3s",
-      "status": "unmeasured",
-      "eta_min": 20,
+      "status": "verified",
+      "eta_min": 8,
       "env": {
         "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
-        "LLAMA_CONTEXT": 32768
-      },
-      "why": {
-        "en": "Free tier T4 availability varies; this CollabOSM launch path has not been tested end to end. Select the free account; paid accounts may consume units."
+        "LLAMA_CONTEXT": 204800
       },
       "facts": {
         "context": {
-          "v": 32768,
-          "measured": false,
-          "src": "Configuration from /home/hjotha/scripts/colab-qwen/README.md; not tested through CollabOSM."
+          "v": 204800,
+          "measured": true,
+          "src": "Measured on Colab Tesla T4 (15,360 MiB VRAM) with beellama.cpp KVarN4 local tiers (S=38912, M=56320, L=75776, XL=122112, XXL=163840, XXXL=204800): 14,709 MiB used / 204 MiB free at 204,800."
+        },
+        "vram_mib": {
+          "v": 14709,
+          "measured": true,
+          "src": "nvidia-smi on Tesla T4 at Tier XXXL (204,800 tokens), 2026-11-16."
         }
       }
     }
