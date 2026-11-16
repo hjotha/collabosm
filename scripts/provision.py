@@ -176,7 +176,7 @@ def cmd_up(a) -> int:
     E.setdefault("RUNTIME", "wheel")             # wheel | source (manifest.json)
     E.setdefault("PORT", "8090")
     try:
-        poll_s = float(E.get("COLLABOSM_POLL_S") or 45)
+        poll_s = float(E.get("COLLABOSM_POLL_S") or 3)
     except ValueError:
         say("!! WAIT_MIN / COLLABOSM_POLL_S must be numbers")
         return 2
