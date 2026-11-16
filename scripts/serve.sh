@@ -80,6 +80,11 @@ nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader | sed
 [ "${ENGINE:-exl3}" = "strata" ] && strata_warm   # its n-gram table into RAM (strata.sh)
 
 URL=""
+# Tunnel mode: COLLABOSM_TUNNEL=ssh (default, local SSH port-forward via colab ssh)
+# or COLLABOSM_TUNNEL=cloudflare (or NO_TUNNEL=0) to publish a cloudflared tunnel.
+if [[ -z "${NO_TUNNEL:-}" ]]; then
+  if [[ "${COLLABOSM_TUNNEL:-ssh}" == "cloudflare" ]]; then NO_TUNNEL=0; else NO_TUNNEL=1; fi
+fi
 # NO_TUNNEL=1 skips the cloudflared tunnel entirely: the API stays local-only on :$PORT and
 # serve.sh reports ready_no_tunnel. provision.py treats that stage as success when NO_TUNNEL
 # is set, so a box that never publishes a public URL still comes up cleanly.

@@ -94,7 +94,9 @@ import json
 import os
 import re
 import secrets
+import shlex
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -449,6 +451,9 @@ class Control:
         self.sessions_failed = False
         self.absent_since = None        # first listing without our box, since the last with it
         self.downing = False            # `down` is running: nothing new may start meanwhile
+        self.ssh_tunnel_proc = None
+        self.ssh_tunnel_port = int(os.environ.get("COLLABOSM_SSH_LOCAL_PORT", "18090"))
+        self.ssh_tunnel_lock = threading.Lock()
         # Bumped by every stop, job start and let-go: a coupling that began before one
         # of those must not write its (now stale) findings over what happened since.
         self.epoch = 0
@@ -890,6 +895,7 @@ class Control:
     # ---- provisioning ---------------------------------------------------- #
 
     def _start_job(self, recipe: dict) -> None:
+        self._stop_ssh_tunnel()
         with self.lock:
             self.epoch += 1
             self.job_recipe = recipe
@@ -1025,6 +1031,7 @@ class Control:
 
     def _let_go(self) -> None:
         """Forget the box: whatever held it (a job, an adoption) no longer does."""
+        self._stop_ssh_tunnel()
         self.epoch += 1
         self.started_here = False
         self.charge_started = 0.0
@@ -1140,6 +1147,97 @@ class Control:
         m = re.search(r"__BEGIN__\n(.*?)\n?__END__", out, re.S)
         return m.group(1).strip() if m else None
 
+    def _stop_ssh_tunnel(self) -> None:
+        with self.ssh_tunnel_lock:
+            proc = self.ssh_tunnel_proc
+            self.ssh_tunnel_proc = None
+            if proc is not None and proc.poll() is None:
+                try:
+                    proc.terminate()
+                    proc.wait(timeout=3)
+                except Exception:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+
+    def _ensure_ssh_tunnel(self, remote_port: int) -> str | None:
+        """Keep a local OpenSSH port-forward to the VM's 127.0.0.1:<remote_port> via `colab ssh --proxy-mode`."""
+        with self.ssh_tunnel_lock:
+            local_port = self.ssh_tunnel_port
+            if self.ssh_tunnel_proc is not None and self.ssh_tunnel_proc.poll() is None:
+                try:
+                    with socket.create_connection(("127.0.0.1", local_port), timeout=1):
+                        return f"http://127.0.0.1:{local_port}"
+                except OSError:
+                    pass
+            if self.ssh_tunnel_proc is not None:
+                try:
+                    self.ssh_tunnel_proc.kill()
+                except Exception:
+                    pass
+                self.ssh_tunnel_proc = None
+
+            os.makedirs(self.state_dir, exist_ok=True)
+            key_path = os.path.join(self.state_dir, "ssh_tunnel_ed25519")
+            pub_path = key_path + ".pub"
+            if not os.path.isfile(key_path) or not os.path.isfile(pub_path):
+                subprocess.run(
+                    ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", key_path],
+                    check=True,
+                )
+            proxy_argv = self.colab.script_argv(
+                "colab_cmd.py",
+                ["ssh", "--proxy-mode", "-s", self.session, "-i", pub_path],
+            )
+            proxy_cmd = " ".join(shlex.quote(str(a)) for a in proxy_argv)
+            ssh_argv = [
+                "ssh", "-N",
+                "-i", key_path,
+                "-L", f"127.0.0.1:{local_port}:127.0.0.1:{remote_port}",
+                "-o", f"ProxyCommand={proxy_cmd}",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "UserKnownHostsFile=/dev/null",
+                "-o", "LogLevel=ERROR",
+                "-o", "ServerAliveInterval=15",
+                "-o", "ServerAliveCountMax=3",
+                "-o", "ExitOnForwardFailure=yes",
+                "root@colab",
+            ]
+            proc = subprocess.Popen(
+                ssh_argv,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.ssh_tunnel_proc = proc
+            deadline = time.time() + 25.0
+            while time.time() < deadline:
+                if proc.poll() is not None:
+                    err = ""
+                    try:
+                        err = (proc.stderr.read() or "").strip()
+                    except Exception:
+                        pass
+                    self._log("[fe] ssh tunnel exited rc=%s %s" % (proc.returncode, err[:200]))
+                    self.ssh_tunnel_proc = None
+                    return None
+                try:
+                    with socket.create_connection(("127.0.0.1", local_port), timeout=0.5):
+                        self._log("[fe] ssh tunnel listening on http://127.0.0.1:%d -> vm:127.0.0.1:%d"
+                                  % (local_port, remote_port))
+                        return f"http://127.0.0.1:{local_port}"
+                except OSError:
+                    time.sleep(0.3)
+            self._log("[fe] ssh tunnel timeout waiting for 127.0.0.1:%d" % local_port)
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+            self.ssh_tunnel_proc = None
+            return None
+
     def _discover(self) -> dict:
         """Where the service is, what its key is, and what the VM says it is doing.
 
@@ -1156,9 +1254,13 @@ class Control:
             try:
                 ep = json.loads(text)
                 found.update(url=ep.get("url"), key=ep.get("key"), stage="ready",
-                             recipe=ep.get("recipe"))
+                             recipe=ep.get("recipe"), port=ep.get("port"))
             except ValueError:
                 pass
+        if not found.get("url") and found.get("key"):
+            local_url = self._ensure_ssh_tunnel(int(found.get("port") or 8090))
+            if local_url:
+                found["url"] = local_url
         if not found.get("url") or not found.get("key"):
             status = self._download("/content/STATUS") or ""
             m = re.search(r"stage=(\S+)", status)
@@ -1555,7 +1657,7 @@ class Control:
             return self._set_stage("bootstrapping", _note("stage.bootstrapping"))
         if "waiting up to" in line:
             return self._set_stage("bootstrapping", _note("waiting"))
-        if re.search(r"\] READY$", line):
+        if re.search(r"\] READY(?:\b|$)", line):
             with self.lock:
                 self.state["progress"] = 99.0
                 # a fresh idle clock: the idle stop counts from the job's start until

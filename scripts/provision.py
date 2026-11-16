@@ -311,7 +311,9 @@ def cmd_up(a) -> int:
             say("!! serve.sh reported stage=%s - see /content/serve.log on the VM" % stage)
             return 8
         if stage == "ready_no_tunnel":
-            if os.environ.get("NO_TUNNEL", "") in ("1", "true", "yes"):
+            tunnel_mode = os.environ.get("COLLABOSM_TUNNEL", "ssh").strip().lower()
+            no_tunnel = os.environ.get("NO_TUNNEL", "0" if tunnel_mode == "cloudflare" else "1").strip().lower()
+            if no_tunnel in ("1", "true", "yes"):
                 say("READY (NO_TUNNEL: local only, no public tunnel)")
                 for line in out.splitlines():
                     if line.startswith(("tunnel:", "models:")):
