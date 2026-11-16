@@ -155,6 +155,7 @@
   main.collapsed #rail { display: none; }
   iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--page); color-scheme: var(--page-scheme); }
   #rail {
+    position: relative;
     min-width: 0; overflow-x: hidden; overflow-y: auto; border-left: 1px solid var(--line);
     background: var(--bg); overscroll-behavior: contain; scrollbar-width: thin;
     scrollbar-color: var(--line) transparent;
@@ -162,6 +163,13 @@
        the bottom does not narrow the column and reflow everything in it */
     scrollbar-gutter: stable;
   }
+  #rail-resizer {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 6px; z-index: 6;
+    cursor: col-resize; touch-action: none; transition: background .12s ease;
+  }
+  #rail-resizer:hover, body.resizing #rail-resizer { background: var(--fg); opacity: .22; }
+  body.resizing { cursor: col-resize; user-select: none; }
+  body.resizing iframe { pointer-events: none; }
   section { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); }
   section:last-child { border-bottom: 0; }
   #toast {
@@ -374,6 +382,7 @@
 <main id="main">
   <iframe id="ui" src="/?embed=1" title="collabosm chat" allow="clipboard-write; clipboard-read"></iframe>
   <aside id="rail">
+    <div id="rail-resizer" role="separator" aria-orientation="vertical" title="Drag to resize (double-click to reset)"></div>
     <p id="toast" role="status" aria-live="polite" hidden></p>
     <section class="fold" id="f-colab"></section>
     <section id="s-status"></section>
@@ -2292,6 +2301,52 @@ $('ui').addEventListener('load', () => {
   themeWatch = null;
   syncTheme();
 });
+
+(function initRailResize() {
+  const RAIL_KEY = 'collabosm.railWidth';
+  const MIN_W = 280;
+  const DEFAULT_W = 368;
+  const maxW = () => Math.max(320, Math.min(900, Math.floor(innerWidth * 0.75)));
+  const clamp = (w) => Math.max(MIN_W, Math.min(maxW(), Math.round(w)));
+  const apply = (w) => document.documentElement.style.setProperty('--rail', clamp(w) + 'px');
+  try {
+    const saved = Number(localStorage.getItem(RAIL_KEY));
+    if (Number.isFinite(saved) && saved >= MIN_W) apply(saved);
+  } catch (e) {}
+
+  const resizer = $('rail-resizer');
+  if (!resizer) return;
+  let dragging = false;
+  let lastW = DEFAULT_W;
+
+  resizer.addEventListener('pointerdown', (e) => {
+    if (e.button && e.button !== 0) return;
+    dragging = true;
+    document.body.classList.add('resizing');
+    resizer.setPointerCapture(e.pointerId);
+    lastW = clamp(innerWidth - e.clientX);
+    apply(lastW);
+    e.preventDefault();
+  });
+  resizer.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    lastW = clamp(innerWidth - e.clientX);
+    apply(lastW);
+  });
+  const finish = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.classList.remove('resizing');
+    try { resizer.releasePointerCapture(e.pointerId); } catch (_) {}
+    try { localStorage.setItem(RAIL_KEY, String(lastW)); } catch (_) {}
+  };
+  resizer.addEventListener('pointerup', finish);
+  resizer.addEventListener('pointercancel', finish);
+  resizer.addEventListener('dblclick', () => {
+    apply(DEFAULT_W);
+    try { localStorage.removeItem(RAIL_KEY); } catch (_) {}
+  });
+})();
 
 if (innerWidth < 900) $('main').classList.add('collapsed');
 setLang(lang);
