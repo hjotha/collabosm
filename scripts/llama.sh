@@ -9,6 +9,9 @@ llama_install() {
     if [ ! -f /content/beellama.zip ] && ls /content/beellama.zip.part* >/dev/null 2>&1; then
       cat /content/beellama.zip.part* > /content/beellama.zip && rm -f /content/beellama.zip.part*
     fi
+    if [ ! -f /content/beellama.zip ] && [ -n "${BEELLAMA_ZIP_URL:-}" ]; then
+      curl -fL --retry 2 -o /content/beellama.zip "$BEELLAMA_ZIP_URL" || return 1
+    fi
     if [ -f /content/beellama.zip ]; then
       if command -v unzip >/dev/null 2>&1; then
         unzip -q -o /content/beellama.zip -d "$base/llama" || return 1

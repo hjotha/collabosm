@@ -240,7 +240,7 @@ def cmd_up(a) -> int:
                 return 1
             say("  ok   %s" % f)
         beellama_zip = E.get("BEELLAMA_ZIP") or os.path.join(HERE, os.pardir, "bin", "beellama-t4-cuda.zip")
-        if E.get("ENGINE") == "llama" and os.path.isfile(beellama_zip):
+        if E.get("ENGINE") == "llama" and (not E.get("BEELLAMA_ZIP_URL") or E.get("BEELLAMA_UPLOAD") == "1") and os.path.isfile(beellama_zip):
             chunk_sz = 16 * 1024 * 1024
             say("uploading %s in 16 MiB chunks -> /content/beellama.zip" % os.path.basename(beellama_zip))
             with open(beellama_zip, "rb") as zfh:
