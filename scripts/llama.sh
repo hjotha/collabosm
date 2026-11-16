@@ -218,7 +218,7 @@ llama_start() {
     stream_args=(
       --model-url "$model_url"
       --hf-stream-vram
-      --hf-download-threads "${LLAMA_HF_THREADS:-8}"
+      --hf-download-threads "${LLAMA_HF_THREADS:-16}"
       --hf-stream-chunk-mb "${LLAMA_HF_CHUNK_MB:-8}"
       --hf-stream-disk-mode "${LLAMA_HF_DISK_MODE:-background}"
     )
