@@ -107,77 +107,44 @@ reasoning-effort = low
 spec-type = draft-mtp
 spec-dm-controller = off
 spec-draft-p-min = 0.65
-spec-draft-p-min-s = 0.80
-spec-draft-p-min-m = 0.70
-spec-draft-p-min-l = 0.65
-spec-draft-p-min-xl = 0.50
-spec-draft-p-min-xxl = 0.50
-spec-draft-p-min-xxxl = 0.50
+spec-draft-p-min-s = 0.65
+spec-draft-p-min-m = 0.65
 
-; Tier S: 0 - 38912 (b2048/ub256 N=6)
-ctx-size-s = ${TIER_S_CTX:-38912}
-mtp-s-max-tokens = ${TIER_S_CTX:-38912}
+; Tier S: 0 - 150528 (b2048/ub256 N=2, p_min=0.65; ~126 MiB free VRAM)
+ctx-size-s = ${TIER_S_CTX:-150528}
+mtp-s-max-tokens = ${TIER_S_CTX:-150528}
 batch-size-s = 2048
 ubatch-size-s = 256
 cache-type-k-s = kvarn4
 cache-type-v-s = kvarn4
 spec-draft-type-k-s = kvarn4
 spec-draft-type-v-s = kvarn4
-spec-draft-n-max-s = 6
+spec-draft-n-max-s = 2
 
-; Tier M: 38913 - 56320 (b1152/ub384 N=4)
-ctx-size-m = ${TIER_M_CTX:-56320}
-mtp-m-max-tokens = ${TIER_M_CTX:-56320}
-batch-size-m = 1152
-ubatch-size-m = 384
+; Tier M: aligned with Tier S (no intermediate step before Tier L)
+ctx-size-m = ${TIER_M_CTX:-150528}
+mtp-m-max-tokens = ${TIER_M_CTX:-150528}
+batch-size-m = 2048
+ubatch-size-m = 256
 cache-type-k-m = kvarn4
 cache-type-v-m = kvarn4
 spec-draft-type-k-m = kvarn4
 spec-draft-type-v-m = kvarn4
-spec-draft-n-max-m = 4
+spec-draft-n-max-m = 2
 
-; Tier L: 56321 - 75776 (b2048/ub256 N=2)
-ctx-size-l = ${TIER_L_CTX:-75776}
+; Tier L: 150529 - ${LLAMA_CONTEXT:-200704} (b2048/ub256 N=0, local CUDA; ~126-130 MiB free VRAM)
+ctx-size-l = ${LLAMA_CONTEXT:-200704}
 batch-size-l = 2048
 ubatch-size-l = 256
 cache-type-k-l = kvarn4
 cache-type-v-l = kvarn4
 spec-draft-type-k-l = kvarn4
 spec-draft-type-v-l = kvarn4
-spec-draft-n-max-l = 2
+spec-draft-n-max-l = 0
 
-; Tier XL: 75777 - 122112 (b2048/ub256 N=0, local CUDA)
-ctx-size-xl = ${TIER_XL_CTX:-122112}
-xl-max-tokens = ${TIER_XL_CTX:-122112}
-batch-size-xl = 2048
-ubatch-size-xl = 256
-cache-type-k-xl = kvarn4
-cache-type-v-xl = kvarn4
-spec-draft-type-k-xl = kvarn4
-spec-draft-type-v-xl = kvarn4
-spec-draft-n-max-xl = 0
-
-; Tier XXL: 122113 - 163840 (b512/ub64 N=0, local CUDA)
-ctx-size-xxl = ${TIER_XXL_CTX:-163840}
-xxlong-max-tokens = ${TIER_XXL_CTX:-163840}
-batch-size-xxl = 512
-ubatch-size-xxl = 64
-cache-type-k-xxl = kvarn4
-cache-type-v-xxl = kvarn4
-spec-draft-type-k-xxl = kvarn4
-spec-draft-type-v-xxl = kvarn4
-spec-draft-n-max-xxl = 0
-
-; Tier XXXL: 163841 - ${LLAMA_CONTEXT:-204800} (b512/ub64 N=0, local CUDA T4 max ~14.7/15.3 GiB)
-ctx-size-xxxl = ${LLAMA_CONTEXT:-204800}
-xxxlong-max-tokens = ${LLAMA_CONTEXT:-204800}
-batch-size-xxxl = 512
-ubatch-size-xxxl = 64
-cache-type-k-xxxl = kvarn4
-cache-type-v-xxxl = kvarn4
-spec-draft-type-k-xxxl = kvarn4
-spec-draft-type-v-xxxl = kvarn4
-spec-draft-n-max-xxxl = 0
+ctx-size-xl = 0
+ctx-size-xxl = 0
+ctx-size-xxxl = 0
 EOF
 }
 

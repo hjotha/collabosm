@@ -501,19 +501,19 @@
       "eta_min": 8,
       "env": {
         "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
-        "LLAMA_CONTEXT": 204800,
+        "LLAMA_CONTEXT": 200704,
         "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-t4-19f92e9/beellama-t4-cuda.zip"
       },
       "facts": {
         "context": {
-          "v": 204800,
+          "v": 200704,
           "measured": true,
-          "src": "Measured on Colab Tesla T4 (15,360 MiB VRAM) with beellama.cpp KVarN4 local tiers (S=38912, M=56320, L=75776, XL=122112, XXL=163840, XXXL=204800): 14,709 MiB used / 204 MiB free at 204,800."
+          "src": "Measured on Colab Tesla T4 (14,913 MiB effective VRAM) with 2-tier KVarN4 (S=150,528 N=2 p_min=0.65 2048/256; L=200,704 N=0 2048/256): 126-130 MiB free VRAM."
         },
         "vram_mib": {
-          "v": 14709,
+          "v": 14787,
           "measured": true,
-          "src": "nvidia-smi on Tesla T4 at Tier XXXL (204,800 tokens), 2026-11-16."
+          "src": "nvidia-smi peak on Tesla T4 across S (150,528) and L (200,704) transitions, 2026-11-16."
         }
       }
     }
