@@ -66,6 +66,21 @@ class CliproxySyncTests(unittest.TestCase):
             colab3 = next(p for p in parsed3["openai-compatibility"] if p["name"] == "colab")
             self.assertTrue(colab3["disabled"])
 
+    def test_keeps_lowercase_alias_for_mixed_case_model_id(self):
+        with tempfile.TemporaryDirectory() as td:
+            cfg = os.path.join(td, "config.yaml")
+            with open(cfg, "w", encoding="utf-8") as fh:
+                fh.write(SAMPLE_CONFIG)
+
+            self.assertTrue(cliproxy_sync.sync_cliproxy("Qwen3.8-27B", config_path=cfg))
+            with open(cfg, encoding="utf-8") as fh:
+                parsed = yaml.safe_load(fh)
+            colab = next(p for p in parsed["openai-compatibility"] if p["name"] == "colab")
+            aliases = {m["alias"]: m["name"] for m in colab["models"]}
+            self.assertEqual(aliases["Qwen3.8-27B"], "Qwen3.8-27B")
+            self.assertEqual(aliases["qwen-3.8-27B"], "Qwen3.8-27B")
+            self.assertEqual(aliases["qwen-3.8-27b"], "Qwen3.8-27B")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -35,6 +35,10 @@ def _render_colab_block(model_id: str | None, disabled: bool, base_url: str) -> 
     models = [(mid, mid)]
     if alias and alias != mid:
         models.append((mid, alias))
+    # Keep a lowercase spelling too: clients configured with the older
+    # qwen-3.8-27b alias must survive a switch to a Qwen3.8-27B VM.
+    if alias and alias.lower() != alias:
+        models.append((mid, alias.lower()))
     lines = [
         "- name: colab",
         f"  disabled: {'true' if disabled else 'false'}",
