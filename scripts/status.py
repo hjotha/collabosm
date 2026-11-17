@@ -39,11 +39,21 @@ running = bool(sh("pgrep -f 'api_server.py|serve/server.py --engine strata|colla
 gpu = sh("nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits").strip()
 tunnel = sh("grep -oE 'https://[a-z0-9-]+\\.trycloudflare\\.com' /content/tunnel.log 2>/dev/null"
             " | head -1").strip()
+model_cached = False
+for _mdir in ("/content/collabosm-llama/model", "/content/collabosm-model", "/content/maya/model"):
+    if os.path.isdir(_mdir):
+        for _fn in os.listdir(_mdir):
+            if _fn.endswith((".gguf", ".safetensors")) and os.path.getsize(os.path.join(_mdir, _fn)) > 0:
+                model_cached = True
+                break
+    if model_cached:
+        break
 
 print("stage:          " + status)
 print("health:         " + health)
 print("engine_running: " + str(running))
 print("gpu_MiB:        " + gpu)
 print("tunnel:         " + (tunnel or "(none)"))
+print("model_cached:   " + str(model_cached))
 if listing:
     print("models:         " + listing[:400])

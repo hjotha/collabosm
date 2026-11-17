@@ -60,12 +60,10 @@ KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "maya.sh", "lla
 # nothing started it at all. `exec` matters: serve.sh stops older copies of itself by
 # matching "bash /content/serve.sh", and this launcher's own command line would match.
 START_BOOTSTRAP = '''import subprocess
-print(subprocess.run("if pgrep -f '/content/[b]ootstrap.sh|/content/[s]erve.sh' >/dev/null 2>&1; then "
-                     "echo BOOTSTRAPPING; else "
-                     "rm -f /content/STATUS /content/endpoint.json /content/url.txt; "
+print(subprocess.run("rm -f /content/STATUS /content/endpoint.json /content/url.txt; "
                      "tar -xzf /content/collabosm-kit.tar.gz -C /content && "
                      "nohup bash -lc 'source /content/collabosm_env.sh && bash /content/bootstrap.sh "
-                     "&& exec bash /content/serve.sh' > /content/bootstrap.log 2>&1 & echo BOOTSTRAPPING; fi",
+                     "&& exec bash /content/serve.sh' > /content/bootstrap.log 2>&1 & echo BOOTSTRAPPING",
                      shell=True, capture_output=True, text=True).stdout)
 '''
 
@@ -178,7 +176,7 @@ def cmd_up(a) -> int:
     E.setdefault("RUNTIME", "wheel")             # wheel | source (manifest.json)
     E.setdefault("PORT", "8090")
     try:
-        poll_s = float(E.get("COLLABOSM_POLL_S") or 5)
+        poll_s = float(E.get("COLLABOSM_POLL_S") or 3)
     except ValueError:
         say("!! WAIT_MIN / COLLABOSM_POLL_S must be numbers")
         return 2
@@ -295,9 +293,28 @@ def cmd_up(a) -> int:
 
     # ---- 4. wait for the endpoint
     say("waiting up to %s min for the endpoint" % _minutes(wait_min))
+    weights_gib = 0.0
+    try:
+        reg = registry.load()
+        rec = next((r for r in reg.get("recipes", []) if r.get("id") == rid), None)
+        if rec:
+            weights_gib = float((rec.get("facts") or {}).get("weights", {}).get("v") or 0.0)
+    except Exception:
+        weights_gib = 0.0
+    try:
+        initial_wait_s = float(E["COLLABOSM_INITIAL_WAIT_S"]) if "COLLABOSM_INITIAL_WAIT_S" in E else round(weights_gib * 5.0)
+    except ValueError:
+        initial_wait_s = round(weights_gib * 5.0)
+    if initial_wait_s > 0:
+        _rc, _out = colab(["exec", "-s", session, "--timeout", "10", "-f",
+                           os.path.join(HERE, "status.py")], timeout=15)
+        if ("model_cached:   True" not in _out and "health:         200" not in _out
+                and not re.search(r"^stage: *stage=(?:ready|ready_no_tunnel|serve_failed|serve_timeout)\b", _out, re.M)):
+            say("model not available on VM yet (~%.1f GiB); waiting %.0fs before %.0fs polling"
+                % (weights_gib, initial_wait_s, poll_s))
+            time.sleep(initial_wait_s)
     deadline = time.time() + wait_min * 60
     while time.time() < deadline:
-        time.sleep(poll_s)
         rc, out = colab(["exec", "-s", session, "--timeout", "10", "-f",
                          os.path.join(HERE, "status.py")], timeout=15)
         indented(out)
@@ -330,14 +347,15 @@ def cmd_up(a) -> int:
                 return 0
             say("!! the API is healthy on the VM but no tunnel URL was published - see /content/tunnel.log")
             return 9
-        rc, out = colab(["exec", "-s", session, "--timeout", "60", "-f",
-                         os.path.join(HERE, "bootstrap_ok.py")], timeout=120)
+        rc, out = colab(["exec", "-s", session, "--timeout", "10", "-f",
+                         os.path.join(HERE, "bootstrap_ok.py")], timeout=15)
         if "bootstrap_failed" in out:
             # the log's last lines, here: a failed start is stopped right after this, and
             # its /content/bootstrap.log goes with the box
             indented(out.split("bootstrap_failed", 1)[1])
             say("!! bootstrap reported failure - the end of /content/bootstrap.log is above")
             return 1
+        time.sleep(poll_s)
     say("!! timed out after %s min" % _minutes(wait_min))
     return 7
 

@@ -505,6 +505,12 @@
         "BEELLAMA_ZIP_URL": "https://huggingface.co/hjotha/beellama-t4-cuda/resolve/main/beellama-t4-cuda.zip"
       },
       "facts": {
+        "weights": {
+          "v": 10.58,
+          "unit": "GiB",
+          "measured": true,
+          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+        },
         "context": {
           "v": 200704,
           "measured": true,
