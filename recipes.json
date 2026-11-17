@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-10",
+  "updated": "2026-11-17",
   "about": "Which GPU runs which model, and how. scripts/recipe.py turns a recipe id into the environment scripts/up.sh launches with; the frontend lists what is here. Every number carries {v, measured, src}: measured means read on that card, anything else is an estimate and says so.",
   "gpus": [
     {
@@ -539,6 +539,84 @@
           "v": 2,
           "measured": true,
           "src": "Direct HF->VRAM streaming (--hf-stream-vram, 16 threads) on Colab Tesla T4 (60s-75s typical), 2026-11-16."
+        }
+      }
+    },
+    {
+      "id": "a100-80g/swift-qwen38-iq3s",
+      "gpu": "a100-80g-hm",
+      "model": "swift-qwen38-iq3s",
+      "status": "verified",
+      "eta_min": 4,
+      "env": {
+        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 196608,
+        "TIER_M_CTX": 229376,
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+        "ASSIGN_RETRIES": 3,
+        "ASSIGN_RETRY_DELAY": 5
+      },
+      "facts": {
+        "weights": {
+          "v": 10.58,
+          "unit": "GiB",
+          "measured": true,
+          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+        },
+        "context": {
+          "v": 262144,
+          "measured": true,
+          "src": "Validated on a Colab A100-SXM4-80GB High-RAM (79.3 GiB VRAM, 167.1 GiB RAM), 2026-11-17: /props n_ctx=262,144; a 234,366-token prompt completed at 428.16 tok/s prefill and 20.36 tok/s decode (KVarN4 tiers S=196,608 / M=229,376 / L=262,144)."
+        },
+        "vram_mib": {
+          "v": 16264,
+          "measured": true,
+          "src": "nvidia-smi after the 234k-token run on the A100-80G: 16,264 MiB used of 81,920 MiB (idle after the turn); 15,890 MiB right after load."
+        },
+        "prefill_tps": {
+          "v": 428.16,
+          "measured": true,
+          "src": "A100-80G, 234,366-token cold prompt, 547.38 s (428.16 tok/s); a 3,484-token prompt measured 534.47 tok/s."
+        },
+        "decode_tps": {
+          "v": 20.36,
+          "measured": true,
+          "src": "A100-80G, 64 tokens at 234k context (20.36 tok/s); 43.87 tok/s at 3.5k context. MTP draft acceptance 81-88%."
+        },
+        "eta_min": {
+          "v": 4,
+          "measured": true,
+          "src": "End-to-end on 2026-11-17: assignment/toolkit upload ~50 s, zip extract + HF->VRAM stream + server ready ~2 min 45 s."
+        }
+      }
+    },
+    {
+      "id": "a100-40g/swift-qwen38-iq3s",
+      "gpu": "a100-40g",
+      "model": "swift-qwen38-iq3s",
+      "status": "unmeasured",
+      "eta_min": 8,
+      "env": {
+        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 196608,
+        "TIER_M_CTX": 229376,
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+        "ASSIGN_RETRIES": 3,
+        "ASSIGN_RETRY_DELAY": 5
+      },
+      "facts": {
+        "weights": {
+          "v": 10.58,
+          "unit": "GiB",
+          "measured": true,
+          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+        },
+        "context": {
+          "v": 262144,
+          "measured": false,
+          "src": "Same launch path and A100 sm_80 zip as a100-80g/swift-qwen38-iq3s, where 262,144 was validated on the 80 GB shape; not measured on the 39 GiB standard shape."
         }
       }
     }
