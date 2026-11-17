@@ -195,15 +195,15 @@ def colab_argv(exe=None):
     return [exe] if exe else [sys.executable, os.path.join(HERE, "colab_cmd.py")]
 
 
-def probe(colab, session, attempts=6):
+def probe(colab, session, attempts=8):
     """Run scripts/probe_gpu.py on the VM and parse its one-line JSON answer."""
     probe_path = os.path.join(HERE, "probe_gpu.py")
     for i in range(1, attempts + 1):
         try:
-            out = subprocess.run(colab + ["exec", "-s", session, "--timeout", "180",
+            out = subprocess.run(colab + ["exec", "-s", session, "--timeout", "30",
                                           "-f", probe_path],
                                  capture_output=True, text=True, encoding="utf-8",
-                                 errors="replace", timeout=300,
+                                 errors="replace", timeout=40,
                                  stdin=subprocess.DEVNULL).stdout
         except Exception:
             out = ""
@@ -214,8 +214,8 @@ def probe(colab, session, attempts=6):
                 except Exception:
                     pass
         if i < attempts:
-            print("[restore] probe %d/%d did not answer yet; waiting 30 s" % (i, attempts))
-            time.sleep(30)
+            print("[restore] probe %d/%d did not answer yet; waiting 5 s" % (i, attempts))
+            time.sleep(5)
     return None
 
 
