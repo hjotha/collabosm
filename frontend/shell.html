@@ -1353,8 +1353,16 @@ function words(n, prefix) {
 }
 
 function stoppable(s) {
+  // A failed deploy is not a reason to keep Stop on screen by itself: _fail()
+  // already runs down and closes the ledger. Keep it only when that failure
+  // left something to stop -- a billing VM, an open session, or a stop that
+  // did not confirm.
+  const failedLeftover = s.stage === 'failed' && !s.downing && (
+    s.ledger_open || oursLive(s) || !!s.vm
+    || (s.note && s.note.k === 'fail.stop')
+    || !!(s.note && s.note.a && s.note.a.autostop === 'failed'));
   return (BUSY.includes(s.stage) && s.stage !== 'stopping') || s.stage === 'ready' || s.stage === 'attached'
-    || s.stage === 'failed' || (s.ledger_open && (s.stage === 'idle' || s.stage === 'stopped'))
+    || failedLeftover || (s.ledger_open && (s.stage === 'idle' || s.stage === 'stopped'))
     || (['idle', 'stopped'].includes(s.stage) && oursLive(s));
 }
 
