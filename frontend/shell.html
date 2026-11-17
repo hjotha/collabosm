@@ -283,6 +283,7 @@
   .gpu { padding: 14px; border: 1px solid var(--line-strong); border-radius: 12px; }
   .gpu + .gpu { margin-top: 10px; }
   .gpu.sel { border-color: var(--fg); }
+  .gpu > .confirm { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
   .gpu .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .gpu .top b { font-size: 14px; font-weight: 650; }
   .gpu .chips { margin-top: 10px; gap: 5px; }
@@ -1731,7 +1732,6 @@ function statusHTML() {
   if (live) h += sessionChips();
   h += '<p class="note" data-v="note"></p>';
   if (s === 'attached') h += '<p class="fine">' + esc(t('attached.body')) + '</p>';
-  if (st.confirm) h += confirmHTML(st.confirm);
   if (s === 'ready' || st.machine) h += machineHTML();
   h += moneyHTML();
   const acts = [], ep = st.endpoint || {};
@@ -1763,6 +1763,10 @@ function factsHTML(r) {
 
 function gpuHTML(g, locked) {
   const list = gpuRecipes(g), r = chosenRecipe(g);
+  const confirming = st.confirm ? recipeById(st.confirm.recipe) : null;
+  if (confirming && confirming.gpu === g.id) {
+    return '<article class="gpu sel confirm-card">' + confirmHTML(st.confirm) + '</article>';
+  }
   const running = !!r && st.stage === 'ready' && st.selected === r.id;
   const rate = (g.facts || {}).cu_per_hour || {};
   const how = (f) => t(f && f.measured ? 'how.measured' : 'how.estimate');
@@ -1803,7 +1807,12 @@ function gpusHTML() {
     || !colabReady();
   const need = colabReady() || s === 'ready' || s === 'attached' ? ''
     : '<p class="fine">' + esc(t('gpus.need_colab')) + '</p>';
-  return need + (st.gpus || []).map((g) => gpuHTML(g, locked)).join('');
+  const cards = (st.gpus || []).map((g) => gpuHTML(g, locked));
+  const confirming = st.confirm ? recipeById(st.confirm.recipe) : null;
+  if (st.confirm && !(confirming && (st.gpus || []).some((g) => g.id === confirming.gpu))) {
+    cards.unshift('<article class="gpu sel confirm-card">' + confirmHTML(st.confirm) + '</article>');
+  }
+  return need + cards.join('');
 }
 
 // ---- speed ------------------------------------------------------------------- //
