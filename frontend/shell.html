@@ -1962,7 +1962,9 @@ function bindValues() {
       ndt: launch.num_draft_tokens })
     + (sv.uptime_s != null ? ' · ' + t('machine.up', { up: dur(sv.uptime_s) }) : '') : '';
 
-  const burning = !!(b && b.assignments && b.rate && b.cu !== null && b.cu !== undefined);
+  const runRec = currentRecipe();
+  const freeTierRun = !!(runRec && runRec.free_tier);
+  const burning = !!(b && b.assignments && b.rate && b.cu > 0 && !freeTierRun);
   v.balance = b ? num(b.cu, 2) : '—';
   tips.balance = b ? t('tip.balance', { ago: ago(b.checked_at) }) : t('money.unknown');
   v.burn = b ? num(burning ? b.rate : 0, 2) + '/h' : '—';
