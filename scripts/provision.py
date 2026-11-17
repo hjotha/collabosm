@@ -176,7 +176,7 @@ def cmd_up(a) -> int:
     E.setdefault("RUNTIME", "wheel")             # wheel | source (manifest.json)
     E.setdefault("PORT", "8090")
     try:
-        poll_s = float(E.get("COLLABOSM_POLL_S") or 3)
+        poll_s = float(E.get("COLLABOSM_POLL_S") or 5)
     except ValueError:
         say("!! WAIT_MIN / COLLABOSM_POLL_S must be numbers")
         return 2
@@ -279,7 +279,7 @@ def cmd_up(a) -> int:
         starter = os.path.join(work, "start_bootstrap.py")
         with open(starter, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(START_BOOTSTRAP)
-        rc, out = colab(["exec", "-s", session, "--timeout", "150", "-f", starter], timeout=200)
+        rc, out = colab(["exec", "-s", session, "--timeout", "25", "-f", starter], timeout=35)
         if "BOOTSTRAPPING" not in out:
             say("!! the bootstrap did not start on the VM - refusing to wait %s min for it"
                 % _minutes(wait_min))
@@ -291,8 +291,8 @@ def cmd_up(a) -> int:
     deadline = time.time() + wait_min * 60
     while time.time() < deadline:
         time.sleep(poll_s)
-        rc, out = colab(["exec", "-s", session, "--timeout", "60", "-f",
-                         os.path.join(HERE, "status.py")], timeout=120)
+        rc, out = colab(["exec", "-s", session, "--timeout", "10", "-f",
+                         os.path.join(HERE, "status.py")], timeout=15)
         indented(out)
         m = re.search(r"^stage: *stage=([a-z_]*)", out, re.M)
         stage = m.group(1) if m else ""
