@@ -60,10 +60,12 @@ KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "maya.sh", "lla
 # nothing started it at all. `exec` matters: serve.sh stops older copies of itself by
 # matching "bash /content/serve.sh", and this launcher's own command line would match.
 START_BOOTSTRAP = '''import subprocess
-print(subprocess.run("rm -f /content/STATUS /content/endpoint.json /content/url.txt; "
+print(subprocess.run("if pgrep -f '/content/bootstrap.sh|/content/serve.sh' >/dev/null 2>&1; then "
+                     "echo BOOTSTRAPPING; else "
+                     "rm -f /content/STATUS /content/endpoint.json /content/url.txt; "
                      "tar -xzf /content/collabosm-kit.tar.gz -C /content && "
                      "nohup bash -lc 'source /content/collabosm_env.sh && bash /content/bootstrap.sh "
-                     "&& exec bash /content/serve.sh' > /content/bootstrap.log 2>&1 & echo BOOTSTRAPPING",
+                     "&& exec bash /content/serve.sh' > /content/bootstrap.log 2>&1 & echo BOOTSTRAPPING; fi",
                      shell=True, capture_output=True, text=True).stdout)
 '''
 
@@ -279,7 +281,12 @@ def cmd_up(a) -> int:
         starter = os.path.join(work, "start_bootstrap.py")
         with open(starter, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(START_BOOTSTRAP)
-        rc, out = colab(["exec", "-s", session, "--timeout", "25", "-f", starter], timeout=35)
+        out = ""
+        for _attempt in range(3):
+            rc, out = colab(["exec", "-s", session, "--timeout", "25", "-f", starter], timeout=35)
+            if "BOOTSTRAPPING" in out:
+                break
+            time.sleep(2)
         if "BOOTSTRAPPING" not in out:
             say("!! the bootstrap did not start on the VM - refusing to wait %s min for it"
                 % _minutes(wait_min))
