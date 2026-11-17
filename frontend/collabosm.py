@@ -83,6 +83,13 @@ MIME = {"html": "text/html", "js": "text/javascript", "css": "text/css",
         "txt": "text/plain", "map": "application/json"}
 
 LOOPBACK_NAMES = ("127.0.0.1", "localhost", "::1")
+# Host:port values of trusted front-ends (the Umbrel app proxy keeps the
+# browser's Host). Set COLLABOSM_ALLOWED_HOSTS="umbrel.lan:3022,...".
+ALLOWED_HOSTS = {
+    entry.strip().lower()
+    for entry in os.environ.get("COLLABOSM_ALLOWED_HOSTS", "").split(",")
+    if entry.strip()
+}
 LANGS = ("en", "zh", "ja")
 
 # The WebUI shows this when someone chats with no card up, so it follows the
@@ -178,6 +185,8 @@ def _names_this_server(hostport: str) -> bool:
         host, port = parts.hostname, parts.port
     except ValueError:
         return False
+    if hostport.strip().lower() in ALLOWED_HOSTS:
+        return True
     return ((port or 80) == ARGS.port
             and (host in LOOPBACK_NAMES or host == ARGS.host))
 
