@@ -60,7 +60,7 @@ KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "maya.sh", "lla
 # nothing started it at all. `exec` matters: serve.sh stops older copies of itself by
 # matching "bash /content/serve.sh", and this launcher's own command line would match.
 START_BOOTSTRAP = '''import subprocess
-print(subprocess.run("if pgrep -f '/content/bootstrap.sh|/content/serve.sh' >/dev/null 2>&1; then "
+print(subprocess.run("if pgrep -f '/content/[b]ootstrap.sh|/content/[s]erve.sh' >/dev/null 2>&1; then "
                      "echo BOOTSTRAPPING; else "
                      "rm -f /content/STATUS /content/endpoint.json /content/url.txt; "
                      "tar -xzf /content/collabosm-kit.tar.gz -C /content && "
