@@ -231,9 +231,9 @@ def main():
     ap.add_argument("--fallback-accelerators", default=os.environ.get("FALLBACK_ACCELERATORS", ""),
                     help="comma-separated fallback accelerators if primary assign fails (e.g. G4,H100)")
     ap.add_argument("--assign-retries", type=int, default=int(os.environ.get("ASSIGN_RETRIES") or 3),
-                    help="attempts per accelerator before moving to fallback (default: 3)")
+                    help="attempts per accelerator before moving to fallback (default: $ASSIGN_RETRIES or 3)")
     ap.add_argument("--assign-retry-delay", type=float, default=float(os.environ.get("ASSIGN_RETRY_DELAY") or 3.0),
-                    help="seconds to wait between assign retries (default: 3)")
+                    help="seconds to wait between assign retries (default: $ASSIGN_RETRY_DELAY or 3)")
     ap.add_argument("--shape", choices=["hm", "st"], default="hm",
                     help="hm = HIGH_RAM (80 GB VRAM / 167 GB RAM), st = standard (40 GB)")
     ap.add_argument("--min-vram-gib", type=float, default=70.0,
