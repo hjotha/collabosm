@@ -189,8 +189,10 @@
       "revision": "d74895bbe5db4bec1e0024e7cc87d59c02d7631a",
       "dir": "/content/collabosm-llama/model",
       "served_id": "swift-qwen38-27b-iq3s",
+      "native_ctx": 262144,
       "vision": false,
-      "mtp": true
+      "mtp": true,
+      "bytes": 11361609472
     }
   ],
   "recipes": [
@@ -520,6 +522,21 @@
           "v": 14787,
           "measured": true,
           "src": "nvidia-smi peak on Tesla T4 across S (150,528) and L (200,704) transitions, 2026-11-16."
+        },
+        "prefill_tps": {
+          "v": 34,
+          "measured": true,
+          "src": "beellama llama-server on Colab Tesla T4 (49 prompt tokens, 1423.1 ms = 34.43 tok/s), 2026-11-16."
+        },
+        "decode_tps": {
+          "v": 18.0,
+          "measured": true,
+          "src": "beellama llama-server on Colab Tesla T4 (25 tokens w/ MTP 16/16 accepted, 1332.3 ms = 18.01 tok/s), 2026-11-16."
+        },
+        "eta_min": {
+          "v": 2,
+          "measured": true,
+          "src": "Direct HF->VRAM streaming (--hf-stream-vram, 16 threads) on Colab Tesla T4 (60s-75s typical), 2026-11-16."
         }
       }
     }

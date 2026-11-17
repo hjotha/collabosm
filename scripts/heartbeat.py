@@ -81,9 +81,12 @@ def _collabosm_heartbeat():
     beat["ram"] = ({"used_gib": round((mem["MemTotal"] - (mem.get("MemAvailable") or 0)) / 2 ** 20, 1),
                     "total_gib": round(mem["MemTotal"] / 2 ** 20, 1)} if mem.get("MemTotal") else None)
     try:
-        beat["disk_free_gib"] = round(shutil.disk_usage("/content").free / 2 ** 30, 1)
+        du = shutil.disk_usage("/content")
+        beat["disk_free_gib"] = round(du.free / 2 ** 30, 1)
+        beat["disk_total_gib"] = round(du.total / 2 ** 30, 1)
     except OSError:
         beat["disk_free_gib"] = None
+        beat["disk_total_gib"] = None
 
     # the model server, from inside the VM: no tunnel in the way
     # ours (api_server.py), or the Strata-derived server used by Strata and Maya

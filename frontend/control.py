@@ -658,11 +658,13 @@ class Control:
             st["coupling"] = self.coupling
             st["downing"] = self.downing
             bal = self.state.get("balance") or {}
-            # Colab's own rate when this box is the account's only assignment; the
-            # recipe's figure otherwise (Colab's rate is for the whole account)
-            rate = (bal.get("rate") if bal.get("rate") and bal.get("assignments") == 1
-                    else (op or {}).get("cu_per_hour"))
-            st["session_cu"] = round(self.state["session_hours"] * rate, 2) if op and rate else None
+            # Free-tier recipes (0 CU/h) never bill CU even if ccu-info lists a T4 rate.
+            # Otherwise use Colab's own rate when this box is the account's only assignment.
+            op_rate = (op or {}).get("cu_per_hour")
+            rate = (0.0 if op_rate == 0
+                    else bal.get("rate") if bal.get("rate") and bal.get("assignments") == 1
+                    else op_rate)
+            st["session_cu"] = round(self.state["session_hours"] * rate, 2) if (op and rate is not None) else None
         # The VM key is ours to hold, not the browser's: the rail only needs to
         # know that there is one.
         st["endpoint"]["key"] = bool(st["endpoint"].get("key"))
@@ -1294,6 +1296,10 @@ class Control:
                 return max(fits, key=lambda r: r["vram_gb"])
         endpoint = ((ours or {}).get("endpoint") or "").lower()
         hardware = ((ours or {}).get("hardware") or "").upper()
+        if hardware == "T4":
+            t4 = next((r for r in runnable if (r.get("accelerator") or "").upper() == "T4" or r.get("free_tier")), None)
+            if t4:
+                return t4
         if hardware == "A100" and endpoint:
             # Colab names a High-RAM machine -hm-: that is the 80 GB card, the only one
             # drawn with that shape; any other A100 is the standard 40 GB one. (This
@@ -1304,7 +1310,7 @@ class Control:
             return next((r for r in runnable if want(r)), runnable[0])
         return runnable[0]
 
-    def _ensure_charge(self, ours: dict | None, server: dict | None, token=None):
+    def _ensure_charge(self, ours: dict | None, server: dict | None, token=None, recipe_hint: str | None = None):
         """A box we did not start has been billing since before we saw it: open
         its ledger entry from the VM's own uptime (at least the server's), not from
         the moment we noticed it -- but never from before the last entry closed,
@@ -1317,7 +1323,7 @@ class Control:
         age = min(machine.get("uptime_s") or (server or {}).get("uptime_s") or 0, 24 * 3600)
         source = ("vm_uptime" if machine.get("uptime_s")
                   else "server_uptime" if age else "adoption")
-        recipe = self._recipe_for(ours, server)
+        recipe = self._recipe_for(ours, server, hint=recipe_hint)
         with self.lock:
             if token is not None and token != self.epoch:
                 return None
@@ -1340,6 +1346,9 @@ class Control:
             if op:
                 self.stale = False             # it is this box: keep its entry going
                 op["seen"] = now
+                if (recipe_hint or (server or {}).get("recipe")) and op.get("recipe") != recipe["id"]:
+                    op["recipe"] = recipe["id"]
+                    op["cu_per_hour"] = recipe["cu_per_hour"]
                 if op.get("adopted") and op.get("start_from") in ("adoption", "server_uptime") \
                         and age and start < op["start"] and source != op.get("start_from"):
                     op["start"], op["start_from"] = start, source      # learned its age
@@ -1423,11 +1432,16 @@ class Control:
                     "stage": vm_stage}
         mcode, models, _ = _http_json(url + "/v1/models", key)
         ids = [m.get("id") for m in (models or {}).get("data") or []] if mcode == 200 else []
+        if not ids and mcode == 200:
+            ids = [m.get("name") or m.get("slug") for m in (models or {}).get("models") or []
+                   if m.get("name") or m.get("slug")]
         scode, server, _ = _http_json(url + "/v1/status", key, timeout=15)
         server = server if scode == 200 and isinstance(server, dict) else None
         if server is not None and not server.get("recipe") and found.get("recipe"):
             server["recipe"] = found["recipe"]            # serve.sh wrote it down
-        if not self._take_charge(ours, url, key, ids, server, ms, why, token):
+        recipe_hint = (found.get("recipe") or (self.job_recipe or {}).get("id")
+                       or (self.ledger.get("open") or {}).get("recipe"))
+        if not self._take_charge(ours, url, key, ids, server, ms, why, token, recipe_hint=recipe_hint):
             return {"ok": False, "code": "superseded"}
         return {"ok": True, "code": "coupled", "url": url}
 
@@ -1446,11 +1460,69 @@ class Control:
                 self.state["note"] = _note("vm.live", session=ours["name"],
                                            stage=vm_stage or "?")
 
-    def _take_charge(self, ours, url, key, ids, server, ms, why, token=None) -> bool:
-        recipe = self._ensure_charge(ours, server, token)
+    def _machine_from_heartbeat(self, hb_data, recipe):
+        if not isinstance(hb_data, dict):
+            return None
+        g = hb_data.get("gpu") or {}
+        r = hb_data.get("ram") or {}
+        gpu = None
+        if g.get("mem_total_mib"):
+            gpu = {
+                "name": (recipe or {}).get("card") or "GPU",
+                "used_mib": g.get("mem_used_mib"),
+                "total_mib": g.get("mem_total_mib"),
+                "util_pct": g.get("util_pct"),
+                "temp_c": g.get("temp_c"),
+                "power_w": g.get("power_w"),
+            }
+        disk_free = hb_data.get("disk_free_gib")
+        disk_total = hb_data.get("disk_total_gib") or (round(disk_free + 12.1, 1) if disk_free is not None else None)
+        return {
+            "at": hb_data.get("at") or int(time.time()),
+            "local": False,
+            "gpu": gpu,
+            "ram": r if r.get("total_gib") else None,
+            "disk": {"free_gib": disk_free, "total_gib": disk_total} if disk_free is not None else None,
+            "uptime_s": hb_data.get("uptime_s"),
+        }
+
+    def _llama_fallback_server(self, recipe, root, key, hb_data):
+        if not recipe:
+            return None
+        env = recipe.get("env") or {}
+        n_ctx = int(env.get("LLAMA_CONTEXT") or env.get("CACHE_SIZE") or 0)
+        if not n_ctx and root:
+            pcode, props, _ = _http_json(root + "/props", key, timeout=5)
+            if pcode == 200 and isinstance(props, dict):
+                n_ctx = int(((props.get("default_generation_settings") or {}).get("n_ctx"))
+                            or props.get("n_ctx") or 0)
+        mod = next((m for m in MODELS if m.get("id") == recipe.get("model_id")), None) or {}
+        native_ctx = mod.get("native_ctx") or n_ctx or None
+        serving = 1
+        if root:
+            lcode, slots, _ = _http_json(root + "/slots", key, timeout=5)
+            if lcode == 200 and isinstance(slots, list) and len(slots) > 0:
+                serving = len(slots)
+        return {
+            "recipe": recipe["id"],
+            "cache_max_tokens": n_ctx or None,
+            "context": {"max_positions": n_ctx or None, "native": native_ctx, "yarn_factor": 0},
+            "concurrency": {"serving": serving},
+            "vision": {"enabled": bool(mod.get("vision")), "available": False},
+            "uptime_s": (hb_data or {}).get("uptime_s"),
+            "machine": self._machine_from_heartbeat(hb_data, recipe),
+        }
+
+    def _take_charge(self, ours, url, key, ids, server, ms, why, token=None, recipe_hint=None) -> bool:
+        recipe = self._ensure_charge(ours, server, token, recipe_hint=recipe_hint)
         if recipe is None:
             return False                   # a stop or a new job got here first
         now = time.time()
+        with self.lock:
+            hb_data = (self.state.get("heartbeat") or {}).get("data")
+        eff_server = server
+        if eff_server is None and (recipe.get("env") or {}).get("ENGINE") == "llama":
+            eff_server = self._llama_fallback_server(recipe, url, key, hb_data)
         with self.lock:
             if token is not None and token != self.epoch:
                 return False
@@ -1459,7 +1531,7 @@ class Control:
             moved = bool(old) and old != url + "/v1"
             self.state.update(
                 stage="ready", progress=100.0, selected=recipe["id"],
-                live_model=(ids[0] if ids else recipe["model"]), adopted=adopted,
+                live_model=(ids[0] if ids else recipe.get("served_id") or recipe["model"]), adopted=adopted,
                 vm=None, confirm=None,
                 endpoint={"base": url + "/v1", "key": key, "key_pending": False},
                 link=dict(NO_LINK, ok=True, latency_ms=round(ms) if ms else None,
@@ -1475,8 +1547,11 @@ class Control:
                                            card=recipe["card"])
             if why != "rediscover":
                 self.last_activity = max(self.last_activity, now)   # a fresh idle clock
-        self._absorb_server(server, url)
-        self._sync_cliproxy(ids[0] if ids else recipe["model"], disabled=False)
+        self._absorb_server(eff_server, url)
+        self._sync_cliproxy(ids[0] if ids else recipe.get("served_id") or recipe["model"], disabled=False)
+        if server is None and not hb_data and not self.fake:
+            threading.Thread(target=self._keep_alive, kwargs={"ping": False, "heartbeat": True},
+                             daemon=True).start()
         if why != "rediscover":
             self._balance_soon()
         if moved:
@@ -1487,10 +1562,17 @@ class Control:
     def _absorb_server(self, server, root) -> None:
         """/v1/status -> the rail's server truth, the box's resources, idle policy."""
         now = time.time()
+        with self.lock:
+            hb_data = (self.state.get("heartbeat") or {}).get("data")
+            rec = next((r for r in RECIPES if r["id"] == self.state.get("selected")), None)
+            ep_key = self.state["endpoint"].get("key")
+            is_colab_vm = bool(self.known_endpoint or self.ssh_tunnel_proc or self.state["stage"] == "ready")
+        if server is None and rec and (rec.get("env") or {}).get("ENGINE") == "llama":
+            server = self._llama_fallback_server(rec, root, ep_key, hb_data)
         machine = (server or {}).get("machine")
         local = None
-        if not machine and root and _is_loopback(root):
-            local = _local_machine(self.root)     # the endpoint runs on this PC
+        if not machine and root and _is_loopback(root) and not is_colab_vm:
+            local = _local_machine(self.root)     # true standalone local server only
         with self.lock:
             if server is not None:
                 self.state["server"], self.state["server_at"] = server, now
@@ -1839,6 +1921,13 @@ class Control:
                     if beat and current:
                         if data is not None:
                             hb.update(at=now, ok=True, err=None, data=data)
+                            rec_now = next((r for r in RECIPES if r["id"] == self.state.get("selected")), None)
+                            if rec_now and (rec_now.get("env") or {}).get("ENGINE") == "llama":
+                                m = self._machine_from_heartbeat(data, rec_now)
+                                if m:
+                                    self.state.update(machine=m, machine_at=now, machine_source="server")
+                                    if isinstance(self.state.get("server"), dict) and data.get("uptime_s") is not None:
+                                        self.state["server"]["uptime_s"] = data["uptime_s"]
                         else:
                             hb.update(ok=False, err=beat_err)
                 elif current:

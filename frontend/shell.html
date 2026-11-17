@@ -1451,7 +1451,9 @@ function colabStep() {
   if (['checking', 'missing', 'installing', 'install_failed', 'no_python'].includes(c.stage)) return 0;
   if (c.stage !== 'connected') return 1;
   const b = st.balance;
-  if (!st.fake && (!b || b.cu === null || b.cu === undefined || b.cu <= 0)) return 2;
+  const rec = currentRecipe();
+  const allowFree = c.active_account === 'free' || !!(rec && rec.free_tier);
+  if (!st.fake && !allowFree && (!b || b.cu === null || b.cu === undefined || b.cu <= 0)) return 2;
   return 3;
 }
 
@@ -1546,10 +1548,16 @@ function colabHTML() {
   } else if (!b || b.cu === null || b.cu === undefined) {
     h += gstep('now busy', 'ring', t('colab.step.cu'), '…', '<p>' + esc(t('colab.cu.reading')) + '</p>');
   } else if (b.cu <= 0) {
-    h += gstep('warn', 'alert', t('colab.step.cu'), t('colab.cu.ok', { cu: num(b.cu, 2) }),
-      '<p class="warn">' + esc(t('colab.cu.none')) + '</p>'
-      + row('<a href="https://colab.research.google.com/signup" target="_blank" rel="noopener noreferrer">'
-            + esc(t('colab.cu.plans')) + '</a>'));
+    const allowFree = c.active_account === 'free' || !!(currentRecipe() && currentRecipe().free_tier);
+    if (allowFree) {
+      h += gstep('done', 'okc', t('colab.step.cu'), t('colab.cu.ok', { cu: num(b.cu, 2) }),
+        '<p class="fine">T4 · gratuita pronta para uso (A100 exige plano pago).</p>');
+    } else {
+      h += gstep('warn', 'alert', t('colab.step.cu'), t('colab.cu.ok', { cu: num(b.cu, 2) }),
+        '<p class="warn">' + esc(t('colab.cu.none')) + '</p>'
+        + row('<a href="https://colab.research.google.com/signup" target="_blank" rel="noopener noreferrer">'
+              + esc(t('colab.cu.plans')) + '</a>'));
+    }
   } else {
     h += gstep('done', 'okc', t('colab.step.cu'), t('colab.cu.ok', { cu: num(b.cu, 2) }));
   }
@@ -1575,7 +1583,9 @@ function renderHeader() {
     const s = st.stage, name = t('stage.' + s, null, s);
     if (s === 'ready' || s === 'attached') {
       cls += (st.link && st.link.ok === false) ? '' : ' on';    // hollow while the tunnel is down
-      label = name + ' · ' + (st.live_model || '');
+      const rec = currentRecipe();
+      const hdr = rec ? (rec.model + (rec.short ? ' · ' + rec.short : '') + ' · ' + rec.card) : (st.live_model || '');
+      label = name + ' · ' + hdr;
     }
     else if (BUSY.includes(s)) {
       cls += ' busy';
@@ -1705,8 +1715,9 @@ function statusHTML() {
     + (s === 'ready' && st.adopted ? '<span class="tag solid" data-t="adopted" tabindex="0">' + esc(t('tag.adopted')) + '</span>' : '')
     + (moving ? '<span class="pct" data-v="pct"></span>' : '') + '</div>';
   if (live || moving) {
-    const model = st.live_model || (rec && rec.model);
-    if (model) h += '<div class="who">' + esc(model) + (rec && s !== 'attached' ? ' · ' + esc(rec.card) : '') + '</div>';
+    const model = rec ? (rec.model + (rec.short ? ' · ' + rec.short : '')) : (st.live_model || '');
+    const alias = (st.live_model && rec && st.live_model !== rec.model) ? ' (' + st.live_model + ')' : '';
+    if (model) h += '<div class="who">' + esc(model + alias) + (rec && s !== 'attached' ? ' · ' + esc(rec.card) : '') + '</div>';
   }
   if (moving) h += stepsHTML(s) + '<div class="bar"><i data-w="bar"></i></div>';
   if (live) h += sessionChips();

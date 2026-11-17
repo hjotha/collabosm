@@ -120,21 +120,39 @@ def _why(exc):
     return text.replace("\n", " ")[:200]
 
 
+def _load_creds(auth):
+    from google.oauth2.credentials import Credentials
+    path = getattr(auth, "TOKEN_CONFIG_PATH", None)
+    if path:
+        if not os.path.exists(path):
+            return None, "none"
+        return Credentials.from_authorized_user_file(path), None
+    token_json = None
+    getter = getattr(auth, "_get_token_from_keyring", None)
+    if callable(getter):
+        try:
+            token_json = getter()
+        except Exception:
+            token_json = None
+    if token_json:
+        return Credentials.from_authorized_user_info(json.loads(token_json), auth.PUBLIC_SCOPES), None
+    legacy = getattr(auth, "LEGACY_TOKEN_PATH", None)
+    if legacy and os.path.exists(legacy):
+        return Credentials.from_authorized_user_file(legacy), None
+    return None, "none"
+
+
 def cmd_status():
     auth = _cli_auth()
-    path = auth.TOKEN_CONFIG_PATH
     out = {"version": version(), "token": "none", "account": None}
-    if not os.path.exists(path):
-        return out
     from google.auth import exceptions as gexc
     from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials
     try:
-        # the scopes the file was granted, not the ones we would ask for: asking for
-        # more at refresh time fails as if the token were dead
-        creds = Credentials.from_authorized_user_file(path)
+        creds, status_tag = _load_creds(auth)
     except Exception as exc:
         out.update(token="invalid", error=type(exc).__name__)
+        return out
+    if creds is None:
         return out
     if not creds.refresh_token:
         out.update(token="invalid", error="no refresh token")
@@ -180,7 +198,13 @@ def cmd_login(port, timeout):
         print("AUTH_ERROR no refresh token was issued")
         return 1
     try:
-        save(creds.to_json(), auth.TOKEN_CONFIG_PATH)
+        path = getattr(auth, "TOKEN_CONFIG_PATH", None)
+        if path:
+            save(creds.to_json(), path)
+        elif callable(getattr(auth, "_save_token_to_keyring", None)):
+            auth._save_token_to_keyring(creds.to_json())
+        else:
+            save(creds.to_json(), auth.LEGACY_TOKEN_PATH)
     except Exception as exc:
         print("AUTH_ERROR could not save the token: %s" % _why(exc))
         return 1
@@ -196,8 +220,8 @@ def cmd_login(port, timeout):
 
 def cmd_logout():
     auth = _cli_auth()
-    path = auth.TOKEN_CONFIG_PATH
-    if not os.path.exists(path):
+    path = getattr(auth, "TOKEN_CONFIG_PATH", None) or getattr(auth, "LEGACY_TOKEN_PATH", None)
+    if not path or not os.path.exists(path):
         print("LOGOUT ok")
         return 0
     revoked = False

@@ -325,9 +325,13 @@ class Handler(BaseHTTPRequestHandler):
             # and `modalities` decides whether it offers image upload at all.
             st = CONTROL.status()
             server = st.get("server") or {}
-            n_ctx = webui_ctx(server, ARGS.ctx)
+            rec = next((r for r in (st.get("recipes") or []) if r.get("id") == st.get("selected")), None) or {}
+            rec_env = rec.get("env") or {}
+            rec_ctx = rec_env.get("LLAMA_CONTEXT") or rec_env.get("CACHE_SIZE")
+            default_ctx = int(rec_ctx) if rec_ctx else ARGS.ctx
+            n_ctx = webui_ctx(server, default_ctx)
             vision = bool((server.get("vision") or {}).get("available"))
-            name = st["live_model"] or "collabosm"
+            name = st["live_model"] or rec.get("model") or "collabosm"
             return self._json(200, {"model_path": name, "n_ctx": n_ctx,
                                     "default_generation_settings": {"n_ctx": n_ctx},
                                     "modalities": {"vision": vision, "audio": False}})
