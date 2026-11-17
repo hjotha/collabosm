@@ -494,7 +494,9 @@ python scripts/recipe.py list             # every GPU + model combination
   it. Your Google sign-in stays on your computer (`.config/colab-cli/token.json` in your home
   folder); **Disconnect** cancels it at Google and deletes it.
 - The model is downloaded from Hugging Face onto the rented machine, always the same fixed version,
-  and runs there with [ExLlamaV3](https://github.com/turboderp-org/exllamav3).
+  and runs there with an engine: [ExLlamaV3](https://github.com/turboderp-org/exllamav3) for the default
+  Qwen3.8-27B recipe, [Strata](https://github.com/Niko1221/Strata) for the A100-40G Flash-Next recipe, and
+  Project Maya for the experimental Maya-L recipe (the free T4 recipe uses llama.cpp/Swift).
 - The rented machine answers through an encrypted Cloudflare tunnel that needs a secret key.
   collabosm keeps that key and adds it for you, so it never reaches your browser. The address you
   use, `127.0.0.1:3020`, stays the same even though the tunnel changes with every GPU.
