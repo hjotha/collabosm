@@ -105,9 +105,13 @@ PY
 }
 
 llama_write_ini() {
-  local ini=/content/collabosm-llama/t4-production.ini
+  local ini=/content/collabosm-llama/t4-production.ini key value
+  # Keep hand-run serve.sh and older VM environments on the catalog's defaults.
+  while IFS='=' read -r key value; do
+    [[ -n "${!key:-}" ]] || printf -v "$key" '%s' "$value"
+  done < "$(dirname -- "${BASH_SOURCE[0]}")/llama-defaults.env" || return 1
   cat > "$ini" <<EOF
-; CollabOSM T4 beellama preset (local KVarN4 tiers, no remote-attn)
+; CollabOSM beellama preset (local KV tiers, no remote-attn)
 version = 1
 
 [*]
@@ -122,10 +126,10 @@ slots = true
 cache-prompt = true
 context-shift = false
 gpu-layers = 99
-cache-type-k = kvarn4
-cache-type-v = kvarn4
-spec-draft-type-k = kvarn4
-spec-draft-type-v = kvarn4
+cache-type-k = $LLAMA_KV_TYPE
+cache-type-v = $LLAMA_KV_TYPE
+spec-draft-type-k = $LLAMA_KV_TYPE
+spec-draft-type-v = $LLAMA_KV_TYPE
 cache-ram = ${LLAMA_CACHE_RAM:-8192}
 slot-save-auto = true
 slot-save-max-count = ${LLAMA_SLOT_SAVE_MAX_COUNT:-64}
@@ -160,41 +164,41 @@ reasoning-effort = low
 
 spec-type = draft-mtp
 spec-dm-controller = off
-spec-draft-p-min = 0.65
-spec-draft-p-min-s = 0.65
-spec-draft-p-min-m = 0.65
+spec-draft-p-min = $LLAMA_MTP_P_MIN
+spec-draft-p-min-s = $LLAMA_MTP_P_MIN
+spec-draft-p-min-m = $LLAMA_MTP_P_MIN
 
-; Tier S: 0 - 150528 (b2048/ub256 N=2, p_min=0.65; ~126 MiB free VRAM)
-ctx-size-s = ${TIER_S_CTX:-150528}
-mtp-s-max-tokens = ${TIER_S_CTX:-150528}
-batch-size-s = 2048
-ubatch-size-s = 256
-cache-type-k-s = kvarn4
-cache-type-v-s = kvarn4
-spec-draft-type-k-s = kvarn4
-spec-draft-type-v-s = kvarn4
-spec-draft-n-max-s = 2
+; Tier S
+ctx-size-s = $TIER_S_CTX
+mtp-s-max-tokens = $TIER_S_CTX
+batch-size-s = $LLAMA_BATCH
+ubatch-size-s = $LLAMA_UBATCH
+cache-type-k-s = $LLAMA_KV_TYPE
+cache-type-v-s = $LLAMA_KV_TYPE
+spec-draft-type-k-s = $LLAMA_KV_TYPE
+spec-draft-type-v-s = $LLAMA_KV_TYPE
+spec-draft-n-max-s = $LLAMA_MTP_DRAFT
 
-; Tier M: aligned with Tier S (no intermediate step before Tier L)
-ctx-size-m = ${TIER_M_CTX:-150528}
-mtp-m-max-tokens = ${TIER_M_CTX:-150528}
-batch-size-m = 2048
-ubatch-size-m = 256
-cache-type-k-m = kvarn4
-cache-type-v-m = kvarn4
-spec-draft-type-k-m = kvarn4
-spec-draft-type-v-m = kvarn4
-spec-draft-n-max-m = 2
+; Tier M
+ctx-size-m = $TIER_M_CTX
+mtp-m-max-tokens = $TIER_M_CTX
+batch-size-m = $LLAMA_BATCH
+ubatch-size-m = $LLAMA_UBATCH
+cache-type-k-m = $LLAMA_KV_TYPE
+cache-type-v-m = $LLAMA_KV_TYPE
+spec-draft-type-k-m = $LLAMA_KV_TYPE
+spec-draft-type-v-m = $LLAMA_KV_TYPE
+spec-draft-n-max-m = $LLAMA_MTP_DRAFT
 
-; Tier L: 150529 - ${LLAMA_CONTEXT:-200704} (b2048/ub256 N=0, local CUDA; ~126-130 MiB free VRAM)
-ctx-size-l = ${LLAMA_CONTEXT:-200704}
-batch-size-l = 2048
-ubatch-size-l = 256
-cache-type-k-l = kvarn4
-cache-type-v-l = kvarn4
-spec-draft-type-k-l = kvarn4
-spec-draft-type-v-l = kvarn4
-spec-draft-n-max-l = 0
+; Tier L
+ctx-size-l = $LLAMA_CONTEXT
+batch-size-l = $LLAMA_BATCH
+ubatch-size-l = $LLAMA_UBATCH
+cache-type-k-l = $LLAMA_KV_TYPE
+cache-type-v-l = $LLAMA_KV_TYPE
+spec-draft-type-k-l = $LLAMA_KV_TYPE
+spec-draft-type-v-l = $LLAMA_KV_TYPE
+spec-draft-n-max-l = $LLAMA_MTP_DRAFT_L
 
 ctx-size-xl = 0
 ctx-size-xxl = 0
@@ -238,10 +242,10 @@ llama_start() {
     --cache-prompt \
     --no-context-shift \
     --gpu-layers 99 \
-    --cache-type-k kvarn4 \
-    --cache-type-v kvarn4 \
-    --spec-draft-type-k kvarn4 \
-    --spec-draft-type-v kvarn4 \
+    --cache-type-k "$LLAMA_KV_TYPE" \
+    --cache-type-v "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k "$LLAMA_KV_TYPE" \
+    --spec-draft-type-v "$LLAMA_KV_TYPE" \
     --cache-ram "${LLAMA_CACHE_RAM:-8192}" \
     --slot-save-auto \
     --slot-save-max-count "${LLAMA_SLOT_SAVE_MAX_COUNT:-64}" \
@@ -267,35 +271,35 @@ llama_start() {
     --no-warmup \
     --spec-type draft-mtp \
     --spec-dm-controller off \
-    --spec-draft-p-min 0.65 \
-    --spec-draft-p-min-s 0.65 \
-    --spec-draft-p-min-m 0.65 \
-    --ctx-size-s "${TIER_S_CTX:-150528}" \
-    --mtp-s-max-tokens "${TIER_S_CTX:-150528}" \
-    --batch-size-s 2048 \
-    --ubatch-size-s 256 \
-    --cache-type-k-s kvarn4 \
-    --cache-type-v-s kvarn4 \
-    --spec-draft-type-k-s kvarn4 \
-    --spec-draft-type-v-s kvarn4 \
-    --spec-draft-n-max-s 2 \
-    --ctx-size-m "${TIER_M_CTX:-150528}" \
-    --mtp-m-max-tokens "${TIER_M_CTX:-150528}" \
-    --batch-size-m 2048 \
-    --ubatch-size-m 256 \
-    --cache-type-k-m kvarn4 \
-    --cache-type-v-m kvarn4 \
-    --spec-draft-type-k-m kvarn4 \
-    --spec-draft-type-v-m kvarn4 \
-    --spec-draft-n-max-m 2 \
-    --ctx-size-l "${LLAMA_CONTEXT:-200704}" \
-    --batch-size-l 2048 \
-    --ubatch-size-l 256 \
-    --cache-type-k-l kvarn4 \
-    --cache-type-v-l kvarn4 \
-    --spec-draft-type-k-l kvarn4 \
-    --spec-draft-type-v-l kvarn4 \
-    --spec-draft-n-max-l 0 \
+    --spec-draft-p-min "$LLAMA_MTP_P_MIN" \
+    --spec-draft-p-min-s "$LLAMA_MTP_P_MIN" \
+    --spec-draft-p-min-m "$LLAMA_MTP_P_MIN" \
+    --ctx-size-s "$TIER_S_CTX" \
+    --mtp-s-max-tokens "$TIER_S_CTX" \
+    --batch-size-s "$LLAMA_BATCH" \
+    --ubatch-size-s "$LLAMA_UBATCH" \
+    --cache-type-k-s "$LLAMA_KV_TYPE" \
+    --cache-type-v-s "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k-s "$LLAMA_KV_TYPE" \
+    --spec-draft-type-v-s "$LLAMA_KV_TYPE" \
+    --spec-draft-n-max-s "$LLAMA_MTP_DRAFT" \
+    --ctx-size-m "$TIER_M_CTX" \
+    --mtp-m-max-tokens "$TIER_M_CTX" \
+    --batch-size-m "$LLAMA_BATCH" \
+    --ubatch-size-m "$LLAMA_UBATCH" \
+    --cache-type-k-m "$LLAMA_KV_TYPE" \
+    --cache-type-v-m "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k-m "$LLAMA_KV_TYPE" \
+    --spec-draft-type-v-m "$LLAMA_KV_TYPE" \
+    --spec-draft-n-max-m "$LLAMA_MTP_DRAFT" \
+    --ctx-size-l "$LLAMA_CONTEXT" \
+    --batch-size-l "$LLAMA_BATCH" \
+    --ubatch-size-l "$LLAMA_UBATCH" \
+    --cache-type-k-l "$LLAMA_KV_TYPE" \
+    --cache-type-v-l "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k-l "$LLAMA_KV_TYPE" \
+    --spec-draft-type-v-l "$LLAMA_KV_TYPE" \
+    --spec-draft-n-max-l "$LLAMA_MTP_DRAFT_L" \
     --ctx-size-xl 0 \
     --ctx-size-xxl 0 \
     --ctx-size-xxxl 0 \

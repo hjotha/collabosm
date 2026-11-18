@@ -100,14 +100,15 @@ class Tests(unittest.TestCase):
         c.colab._stage = 'connected'
         self.assertEqual(c.select(recipe['id'], confirm=True)['code'], 'confirmation_expired')
 
-    def test_free_t4_allowed_on_both_free_and_paid_profiles(self):
+    def test_t4_confirmation_uses_the_active_profiles_rate(self):
         c = self.control()
         c.budget_cu, c.idle_stop_min, c.max_session_h = 200, 20, 6
         rid = 't4-free/swift-qwen38-iq3s'
         c.state['balance'] = {'cu': 420.0}
         pro_result = c.select(rid)
         self.assertEqual(pro_result['code'], 'confirm_required')
-        self.assertTrue(pro_result['warning']['free_tier'])
+        self.assertFalse(pro_result['warning']['free_tier'])
+        self.assertEqual(pro_result['warning']['cu_per_hour'], 1.2)
         with self.accounts.lock:
             self.accounts.data['accounts'].append({'id': 'free', 'label': 'Gratuita', 'home': self.temp.name})
         self.accounts.switch('free')
@@ -115,6 +116,7 @@ class Tests(unittest.TestCase):
         result = c.select(rid)
         self.assertEqual(result['code'], 'confirm_required')
         self.assertTrue(result['warning']['free_tier'])
+        self.assertEqual(result['warning']['cu_per_hour'], 0)
         self.assertEqual(c.state['stage'], 'idle')
 
     def test_refuse_owned_session_and_auth(self):

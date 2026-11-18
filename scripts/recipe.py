@@ -191,7 +191,11 @@ def launch_env(reg: dict, rid: str) -> dict:
     }
     if g.get("fallback_accelerators"):
         env["FALLBACK_ACCELERATORS"] = ",".join(g["fallback_accelerators"])
-    if m.get("engine") == "strata":
+    if m.get("engine") == "llama":
+        # The VM sources these same preset values when an older launch env omits them.
+        with open(os.path.join(HERE, "llama-defaults.env"), encoding="utf-8") as defaults:
+            env.update(line.rstrip().split("=", 1) for line in defaults)
+    elif m.get("engine") == "strata":
         s = m["strata"]
         env.update({"STRATA_REPO": s["repo"], "STRATA_COMMIT": s["commit"],
                     "STRATA_PREBUILT_URL": s.get("release", ""), "STRATA_SHA256": s.get("sha256", ""),
