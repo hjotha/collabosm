@@ -81,6 +81,35 @@
           "src": "Tier gratuito sem unidades, sujeito à disponibilidade; contas com unidades podem ser cobradas."
         }
       }
+    },
+    {
+      "id": "g4",
+      "card": "G4 · Blackwell",
+      "accelerator": "G4",
+      "shape": "st",
+      "vram_gb": 96,
+      "ram_gb": 176,
+      "min_vram_gib": 90,
+      "cu_per_hour": 8.9,
+      "facts": {
+        "cu_per_hour": {
+          "v": 8.9,
+          "measured": false,
+          "src": "Tarifa G4 observada por terceiros em 2026-10-20; confirmar com `colab usage` na conta."
+        },
+        "vram": {
+          "v": 95.6,
+          "unit": "GiB",
+          "measured": false,
+          "src": "Colab G4: NVIDIA RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (95.6 GiB) reportados em teste público de 2026-10-20."
+        },
+        "ram": {
+          "v": 176,
+          "unit": "GiB",
+          "measured": false,
+          "src": "Colab G4 standard shape: 176 GB de RAM no mesmo teste público."
+        }
+      }
     }
   ],
   "models": [
@@ -617,6 +646,35 @@
           "v": 262144,
           "measured": false,
           "src": "Same launch path and A100 sm_80 zip as a100-80g/swift-qwen38-iq3s, where 262,144 was validated on the 80 GB shape; not measured on the 39 GiB standard shape."
+        }
+      }
+    },
+    {
+      "id": "g4/swift-qwen38-iq3s",
+      "gpu": "g4",
+      "model": "swift-qwen38-iq3s",
+      "status": "unmeasured",
+      "eta_min": 4,
+      "env": {
+        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 196608,
+        "TIER_M_CTX": 229376,
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-g4-8454da237/beellama-g4-cuda.zip",
+        "ASSIGN_RETRIES": 3,
+        "ASSIGN_RETRY_DELAY": 5
+      },
+      "facts": {
+        "weights": {
+          "v": 10.58,
+          "unit": "GiB",
+          "measured": true,
+          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+        },
+        "context": {
+          "v": 262144,
+          "measured": false,
+          "src": "Pending G4 validation: same model, tier split and 262,144 target as a100-80g/swift-qwen38-iq3s, with a native sm_120a build. Colab returned Service Unavailable for G4 on 2026-11-18; binary compatibility was checked separately (sm_120a, glibc 2.38, GCC 13 / Ubuntu 24.04)."
         }
       }
     }
