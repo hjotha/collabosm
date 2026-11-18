@@ -47,9 +47,19 @@ from colab_record import extra_fields, keep_alive  # noqa: E402 - either CLI ver
 
 
 def _import_colab_cli():
-    """The CLI lives in a uv tool venv; make it importable from any interpreter."""
+    """Import the Colab CLI from the running interpreter, else from the uv tool venv."""
+    try:
+        from colab_cli.common import state
+        from colab_cli.state import SessionState
+        return state, SessionState
+    except Exception:
+        pass
+    # Added only when the current interpreter cannot import the CLI. The glob is
+    # pinned to this interpreter's pythonX.Y: prepending a 3.13 site-packages to
+    # a 3.12 venv shadows its own pydantic_core and fails with "unknown location".
+    tag = "python%d.%d" % sys.version_info[:2]
     for cand in glob.glob(os.path.expanduser(
-            "~/.local/share/uv/tools/google-colab-cli/lib/python3*/site-packages")):
+            "~/.local/share/uv/tools/google-colab-cli/lib/%s/site-packages" % tag)):
         if cand not in sys.path:
             sys.path.insert(0, cand)
     try:
