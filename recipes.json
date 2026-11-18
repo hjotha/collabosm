@@ -65,20 +65,20 @@
     },
     {
       "id": "t4-free",
-      "card": "T4 · gratuita",
+      "card": "T4 · 16 GB",
       "accelerator": "T4",
       "fallback_accelerators": ["A100:st", "A100:hm", "G4", "H100"],
       "shape": "st",
       "vram_gb": 16,
       "ram_gb": 12,
       "min_vram_gib": 14,
-      "cu_per_hour": 0,
+      "cu_per_hour": 1.2,
       "free_tier": true,
       "facts": {
         "cu_per_hour": {
-          "v": 0,
+          "v": 1.2,
           "measured": false,
-          "src": "Tier gratuito sem unidades, sujeito à disponibilidade; contas com unidades podem ser cobradas."
+          "src": "Medido pela comunidade em conta Pro: Qiita 2026-02 = 1.19 CU/h; Zenn 2026-07 = 1.15 CU/h; Fastero 2026-11 = ~1.1-1.2 CU/h. Na conta gratuita (sem unidades) e 0."
         }
       }
     },

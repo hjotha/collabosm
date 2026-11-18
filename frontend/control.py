@@ -574,7 +574,7 @@ class Control:
                 return               # an adopted box: its entry already runs
             now = time.time()
             self.ledger["open"] = {"start": now, "seen": now, "recipe": recipe["id"],
-                                   "cu_per_hour": recipe["cu_per_hour"]}
+                                   "cu_per_hour": self._effective_rate(recipe)}
         self._save_ledger()
 
     def _billed_until(self, op: dict) -> float:
@@ -607,6 +607,30 @@ class Control:
             self.stale = False
         self._save_ledger()
         return cu
+
+    def _active_account_id(self) -> str:
+        try:
+            return str(self.accounts.snapshot().get("active_account") or "")
+        except Exception:
+            return ""
+
+    def _effective_rate(self, recipe) -> float:
+        """Free-tier recipes cost 0 only on the free account.
+
+        The same T4 on a paid account consumes units (community measurements:
+        ~1.15-1.19 CU/h). The recipe keeps `free_tier: true` so the free
+        account can still start it without a CU budget.
+        """
+        rate = recipe.get("cu_per_hour")
+        if recipe.get("free_tier") and self._active_account_id() == "free":
+            return 0.0
+        try:
+            return float(rate or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _effective_free_tier(self, recipe) -> bool:
+        return bool(recipe.get("free_tier")) and self._active_account_id() == "free"
 
     def _refresh_money(self) -> None:
         op = self.ledger.get("open")
@@ -645,14 +669,29 @@ class Control:
 
     def status(self) -> dict:
         self._refresh_money()
+        active_free = self._active_account_id() == "free"
         with self.lock:
-            # the idle countdown is read here too, not only in the watcher, so a
+            # the idle countdown is read here too, not only in the watch tick, so a
             # freshly-ready box does not show "—" for up to one watch tick
             if self.state["stage"] == "ready" and self.ledger.get("open"):
                 idle = self._idle_now(time.time())
                 self.state["idle_left_s"] = (None if idle is None
                                              else int(max(0, self.idle_stop_min * 60 - idle)))
             st = json.loads(json.dumps(self.state))
+            # A free-tier recipe is 0 CU only on the free account; on Pro the
+            # same T4 consumes units. Show the effective rate for the account.
+            for item in st.get("recipes") or []:
+                src = next((r for r in RECIPES if r.get("id") == item.get("id")), None)
+                if src:
+                    free = bool(src.get("free_tier")) and active_free
+                    item["free_tier"] = free
+                    item["cu_per_hour"] = 0.0 if free else float(src.get("cu_per_hour") or 0.0)
+            for gpu in st.get("gpus") or []:
+                src = next((g for g in REGISTRY["gpus"] if g.get("id") == gpu.get("id")), None)
+                if src:
+                    free = bool(src.get("free_tier")) and active_free
+                    gpu["free_tier"] = free
+                    gpu["cu_per_hour"] = 0.0 if free else float(src.get("cu_per_hour") or 0.0)
             op = self.ledger.get("open")
             st["ledger_open"] = op is not None
             st["coupling"] = self.coupling
@@ -710,16 +749,18 @@ class Control:
                 return {"ok": False, "code": "confirmation_expired"}
             bal = self.state.get("balance") or {}
             left = bal["cu"] if bal.get("cu") is not None else self.state["cu_left"]
-            need = round(recipe["cu_per_hour"] * ((recipe["eta_min"] + 5) / 60.0), 2)
-            if not recipe.get("free_tier") and left < max(3.0, need):
+            rate = self._effective_rate(recipe)
+            free_tier = self._effective_free_tier(recipe)
+            need = round(rate * ((recipe["eta_min"] + 5) / 60.0), 2)
+            if not free_tier and left < max(3.0, need):
                 return {"ok": False, "code": "budget", "cu_left": round(left, 1),
                         "cu_need": round(need, 1)}
             warn = {"recipe": recipe["id"], "card": recipe["card"], "model": recipe["model"],
-                    "status": recipe["status"], "free_tier": recipe.get("free_tier", False),
+                    "status": recipe["status"], "free_tier": free_tier,
                     "chat_only": (recipe["facts"].get("responses_api") or {}).get("v") is False,
                     "rate_measured": bool((recipe["facts"].get("cu_per_hour") or {}).get("measured")),
-                    "cu_per_hour": recipe["cu_per_hour"],
-                    "usd_per_hour": round(recipe["cu_per_hour"] * 0.0999, 2),
+                    "cu_per_hour": rate,
+                    "usd_per_hour": round(rate * 0.0999, 2),
                     "eta_min": recipe["eta_min"],
                     "cu_estimate": need,
                     "budget_cu": self.budget_cu,
@@ -913,7 +954,7 @@ class Control:
                               selected=recipe["id"], live_model=None, metrics=None,
                               confirm=None, endpoint=dict(NO_ENDPOINT), link=dict(NO_LINK),
                               foot=_note("foot.billing", card=recipe["card"],
-                                         cuph=recipe["cu_per_hour"]))
+                                         cuph=self._effective_rate(recipe)))
         self._open_session(recipe)
         self._balance_soon()
         threading.Thread(target=self._beat, daemon=True).start()
@@ -1348,13 +1389,13 @@ class Control:
                 op["seen"] = now
                 if (recipe_hint or (server or {}).get("recipe")) and op.get("recipe") != recipe["id"]:
                     op["recipe"] = recipe["id"]
-                    op["cu_per_hour"] = recipe["cu_per_hour"]
+                    op["cu_per_hour"] = self._effective_rate(recipe)
                 if op.get("adopted") and op.get("start_from") in ("adoption", "server_uptime") \
                         and age and start < op["start"] and source != op.get("start_from"):
                     op["start"], op["start_from"] = start, source      # learned its age
             else:
                 self.ledger["open"] = {"start": start, "seen": now, "recipe": recipe["id"],
-                                       "cu_per_hour": recipe["cu_per_hour"], "adopted": True,
+                                       "cu_per_hour": self._effective_rate(recipe), "adopted": True,
                                        "start_from": source if start == now - age else "last_entry",
                                        "endpoint": self.known_endpoint}
             if not self.charge_started:
