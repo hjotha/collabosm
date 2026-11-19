@@ -253,7 +253,9 @@ def cmd_up(a) -> int:
             say("  FAIL collabosm-kit.tar.gz (upload) - refusing to continue")
             return 1
         say("  ok   collabosm-kit.tar.gz")
-        beellama_zip = E.get("BEELLAMA_ZIP") or os.path.join(HERE, os.pardir, "bin", "beellama-t4-cuda.zip")
+        beellama_zip = E.get("BEELLAMA_ZIP") or "beellama-t4-cuda.zip"
+        if not os.path.isabs(beellama_zip):
+            beellama_zip = os.path.join(HERE, os.pardir, "bin", beellama_zip)
         if E.get("ENGINE") == "llama" and (not E.get("BEELLAMA_ZIP_URL") or E.get("BEELLAMA_UPLOAD") == "1") and os.path.isfile(beellama_zip):
             chunk_sz = 16 * 1024 * 1024
             say("uploading %s in 16 MiB chunks -> /content/beellama.zip" % os.path.basename(beellama_zip))

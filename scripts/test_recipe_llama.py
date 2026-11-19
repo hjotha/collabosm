@@ -38,13 +38,15 @@ class LlamaRecipeTests(unittest.TestCase):
                 if env["ENGINE"] != "llama":
                     self.assertNotIn("LLAMA_BATCH", env)
                     continue
+                run_env = dict(os.environ, **env)
+                run_env.update(PORT="8090", KEY_FILE="key", LOG="log", LLAMA_STREAM_VRAM="1")
                 with self.subTest(recipe=row["id"]):
                     subprocess.run([BASH, "-euc", '''
 source ./llama.sh
 nohup() { printf '%s\\n' "$@" > flags; }
 llama_start
 wait "$!"
-'''], cwd=root, env=dict(os.environ, **env, PORT="8090", KEY_FILE="key", LOG="log"),
+'''], cwd=root, env=run_env,
                                    check=True, capture_output=True, text=True, timeout=5)
                     ini = (root / "vm/t4-production.ini").read_text().splitlines()
                     flags = (root / "flags").read_text().splitlines()

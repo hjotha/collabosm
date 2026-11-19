@@ -222,6 +222,22 @@
       "vision": false,
       "mtp": true,
       "bytes": 11361609472
+    },
+    {
+      "id": "sensenova-loop-9b",
+      "name": "SenseNova Loop 9B",
+      "short": "GGUF Q4_K_M MTP",
+      "params": "9B (14.6B eq.)",
+      "quant": "GGUF Q4_K_M MTP",
+      "engine": "llama",
+      "repo": "sensenova/SenseNova-Loop-9B-GGUF",
+      "revision": "11c121055062d33647348cf236a8c543138b282e",
+      "dir": "/content/collabosm-llama/model-sensenova",
+      "served_id": "sensenova-loop-9b",
+      "native_ctx": 524288,
+      "vision": false,
+      "mtp": true,
+      "bytes": 5818631072
     }
   ],
   "recipes": [
@@ -568,6 +584,57 @@
           "v": 2,
           "measured": true,
           "src": "Direct HF->VRAM streaming (--hf-stream-vram, 16 threads) on Colab Tesla T4 (60s-75s typical), 2026-11-16."
+        }
+      }
+    },
+    {
+      "id": "t4-free/sensenova-loop-9b",
+      "gpu": "t4-free",
+      "model": "sensenova-loop-9b",
+      "status": "verified",
+      "eta_min": 5,
+      "env": {
+        "LLAMA_FILE": "SenseNova-Loop-9B-Q4_K_M.gguf",
+        "LLAMA_CONTEXT": 524288,
+        "TIER_S_CTX": 65536,
+        "TIER_M_CTX": 65536,
+        "LLAMA_STREAM_VRAM": 0,
+        "BEELLAMA_ZIP": "beellama-t4-cuda-sensenova.zip",
+        "LLAMA_ALIASES": "sensenova-loop-9b",
+        "ASSIGN_RETRIES": 6,
+        "ASSIGN_RETRY_DELAY": 10
+      },
+      "facts": {
+        "weights": {
+          "v": 5.42,
+          "unit": "GiB",
+          "measured": true,
+          "src": "SenseNova-Loop-9B-Q4_K_M.gguf on Hugging Face (5,818,631,072 B = 5.42 GiB)."
+        },
+        "context": {
+          "v": 524288,
+          "measured": true,
+          "src": "Measured on Colab Tesla T4 (15,360 MiB) with KVarN4 KV: a 2,017-token request forced the 524,288-token L tier, the request returned 200 and nvidia-smi read 13,737 MiB. Tiers S/M are 65,536 so the S cache does not compete with the L handoff."
+        },
+        "vram_mib": {
+          "v": 13737,
+          "measured": true,
+          "src": "nvidia-smi after the 524,288-token L tier was allocated on Colab Tesla T4, 2026-11-19."
+        },
+        "prefill_tps": {
+          "v": 17.4,
+          "measured": true,
+          "src": "beellama llama-server on Colab Tesla T4 (26 prompt tokens, 1495.6 ms = 17.38 tok/s), 2026-11-19."
+        },
+        "decode_tps": {
+          "v": 5.7,
+          "measured": true,
+          "src": "beellama llama-server on Colab Tesla T4 (28 tokens with MTP, 16/17 drafts accepted, 4761.9 ms = 5.67 tok/s), 2026-11-19."
+        },
+        "eta_min": {
+          "v": 2,
+          "measured": true,
+          "src": "HF range download to /content (5.4 GiB, ~44 s) plus server start on Colab Tesla T4, 2026-11-19. Direct HF->VRAM streaming is disabled for this GGUF because its tokenizer metadata exceeds the 8 MiB stream header probe."
         }
       }
     },

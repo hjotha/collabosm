@@ -155,7 +155,7 @@ adaptive-direct-pure-disk-restore = true
 
 [$MODEL_ID]
 model = $MODEL_DIR/$LLAMA_FILE
-alias = $MODEL_ID,qwen-3.8-27b,Qwen3.8-27B
+alias = ${LLAMA_ALIASES:-$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B}
 load-on-startup = true
 no-warmup = true
 slot-save-auto = true
@@ -230,7 +230,7 @@ llama_start() {
   nohup "$bin" \
     --model "$MODEL_DIR/$LLAMA_FILE" \
     "${stream_args[@]}" \
-    --alias "$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B" \
+    --alias "${LLAMA_ALIASES:-$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B}" \
     --load-mode none \
     --parallel 1 \
     --device CUDA0 \
