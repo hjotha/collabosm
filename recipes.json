@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-11-17",
+  "updated": "2026-11-19",
   "about": "Which GPU runs which model, and how. scripts/recipe.py turns a recipe id into the environment scripts/up.sh launches with; the frontend lists what is here. Every number carries {v, measured, src}: measured means read on that card, anything else is an estimate and says so.",
   "gpus": [
     {
@@ -208,6 +208,24 @@
       }
     },
     {
+      "id": "qwen38-fn-iq3s",
+      "name": "Qwen3.8-Flash-Next",
+      "short": "GGUF IQ3_S",
+      "params": "125B-A6B MoE",
+      "quant": "GGUF IQ3_S, 3.50 bpw (ISTA-DASLab GSQ-RCO)",
+      "engine": "llama",
+      "repo": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+      "revision": "2a55d75962e22f7a4a1d9963ab6eae3678537831",
+      "dir": "/content/collabosm-llama/model-qwen38fn",
+      "served_id": "qwen3.8-flash-next-iq3_s",
+      "native_ctx": 262144,
+      "vision": false,
+      "mtp": false,
+      "ngram": true,
+      "recurrent": true,
+      "bytes": 83617662656
+    },
+    {
       "id": "swift-qwen38-iq3s",
       "name": "Swift Qwen3.8-27B",
       "short": "GGUF IQ3_S MTP",
@@ -304,6 +322,42 @@
           "v": "ccs 16 + rcs 16 GiB",
           "measured": false,
           "src": "36.7 of 83.5 GiB in use on 2026-09-27; rcs is 16, not 8: a GDN checkpoint here is ~150 MB (48 layers x 48 heads x 128 x 128 fp32), one every ~2048 tokens, so an 86K-token Codex prompt leaves ~42 of them (~6 GB)"
+        }
+      }
+    },
+    {
+      "id": "a100-80g/qwen38-fn-iq3s",
+      "gpu": "a100-80g-hm",
+      "model": "qwen38-fn-iq3s",
+      "status": "unmeasured",
+      "eta_min": 25,
+      "env": {
+        "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+        "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 196608,
+        "TIER_M_CTX": 229376,
+        "LLAMA_STREAM_VRAM": 0,
+        "LLAMA_LOAD_MODE": "mmap",
+        "LLAMA_LAZY_MODE": "on",
+        "LLAMA_SPEC_TYPE": "none",
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+        "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
+        "ASSIGN_RETRIES": 8,
+        "ASSIGN_RETRY_DELAY": 15
+      },
+      "facts": {
+        "weights": {
+          "v": 77.88,
+          "unit": "GiB",
+          "measured": true,
+          "src": "IQ3_S shards 1 + 2 on Hugging Face: 54,817,524,224 + 28,800,138,432 B = 77.88 GiB."
+        },
+        "resident": {
+          "v": 51.05,
+          "unit": "GiB",
+          "measured": false,
+          "src": "Shard 1 only (54,817,524,224 B). The GGUF README: 'Only the first shard holds transformer weights and needs to be resident'; shard 2 is the per_layer_token_embd n-gram table, which the fork marks TENSOR_READ_LAZY (lazy-mode auto keeps it mmap'd on disk). Not measured yet."
         }
       }
     },
@@ -713,6 +767,47 @@
           "v": 262144,
           "measured": false,
           "src": "Same launch path and A100 sm_80 zip as a100-80g/swift-qwen38-iq3s, where 262,144 was validated on the 80 GB shape; not measured on the 39 GiB standard shape."
+        }
+      }
+    },
+    {
+      "id": "g4/qwen38-fn-iq3s",
+      "gpu": "g4",
+      "model": "qwen38-fn-iq3s",
+      "status": "unmeasured",
+      "eta_min": 25,
+      "env": {
+        "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+        "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 196608,
+        "TIER_M_CTX": 229376,
+        "LLAMA_STREAM_VRAM": 0,
+        "LLAMA_LOAD_MODE": "mmap",
+        "LLAMA_LAZY_MODE": "on",
+        "LLAMA_SPEC_TYPE": "none",
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-g4-8454da237/beellama-g4-cuda.zip",
+        "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
+        "ASSIGN_RETRIES": 3,
+        "ASSIGN_RETRY_DELAY": 5
+      },
+      "facts": {
+        "weights": {
+          "v": 77.88,
+          "unit": "GiB",
+          "measured": true,
+          "src": "IQ3_S shards 1 + 2 on Hugging Face: 54,817,524,224 + 28,800,138,432 B = 77.88 GiB."
+        },
+        "resident": {
+          "v": 51.05,
+          "unit": "GiB",
+          "measured": false,
+          "src": "Shard 1 only (54,817,524,224 B). The GGUF README: 'Only the first shard holds transformer weights and needs to be resident'; shard 2 is the per_layer_token_embd n-gram table, kept mmap'd on disk when the build supports lazy reads (lazy-mode auto). Not measured yet."
+        },
+        "context": {
+          "v": 262144,
+          "measured": false,
+          "src": "Model native context (config.json max_position_embeddings 262,144). The KV for the 12 full-attention layers (2 KV heads x 256) is small with KVarN4; G4 has 95.6 GiB VRAM. Not measured: on the Pro account the G4 request is accepted (no entitlement error) but Colab answered Service Unavailable on repeated assignment attempts (2026-11-19); the free account rejects the accelerator outright."
         }
       }
     },

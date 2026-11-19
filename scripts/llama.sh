@@ -54,11 +54,12 @@ from huggingface_hub import hf_hub_download, hf_hub_url
 
 repo = os.environ["MODEL_REPO"]
 rev = os.environ["MODEL_REVISION"]
-fname = os.environ["LLAMA_FILE"]
+files = [os.environ["LLAMA_FILE"]] + os.environ.get("LLAMA_EXTRA_FILES", "").split()
 dest_dir = os.environ["MODEL_DIR"]
-dest = os.path.join(dest_dir, fname)
 
-def parallel_download() -> bool:
+def parallel_download(fname) -> bool:
+    dest = os.path.join(dest_dir, fname)
+    os.makedirs(os.path.dirname(dest) or dest_dir, exist_ok=True)
     url = hf_hub_url(repo_id=repo, revision=rev, filename=fname)
     req = urllib.request.Request(url, method="HEAD")
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -95,12 +96,13 @@ def parallel_download() -> bool:
     os.replace(part, dest)
     return True
 
-try:
-    if not parallel_download():
-        raise RuntimeError("range unsupported")
-except Exception as e:
-    print(f"[llama] parallel download fallback ({e}), using hf_hub_download", flush=True)
-    hf_hub_download(repo_id=repo, revision=rev, filename=fname, local_dir=dest_dir)
+for fname in files:
+    try:
+        if not parallel_download(fname):
+            raise RuntimeError("range unsupported")
+    except Exception as e:
+        print(f"[llama] parallel download fallback ({e}), using hf_hub_download", flush=True)
+        hf_hub_download(repo_id=repo, revision=rev, filename=fname, local_dir=dest_dir)
 PY
 }
 
@@ -115,7 +117,8 @@ llama_write_ini() {
 version = 1
 
 [*]
-load-mode = none
+load-mode = ${LLAMA_LOAD_MODE:-none}
+lazy-mode = ${LLAMA_LAZY_MODE:-auto}
 parallel = 1
 device = CUDA0
 flash-attn = on
@@ -125,7 +128,7 @@ metrics = true
 slots = true
 cache-prompt = true
 context-shift = false
-gpu-layers = 99
+gpu-layers = ${LLAMA_GPU_LAYERS:-99}
 cache-type-k = $LLAMA_KV_TYPE
 cache-type-v = $LLAMA_KV_TYPE
 spec-draft-type-k = $LLAMA_KV_TYPE
@@ -162,7 +165,7 @@ slot-save-auto = true
 slot-save-block = 256
 reasoning-effort = low
 
-spec-type = draft-mtp
+spec-type = ${LLAMA_SPEC_TYPE:-draft-mtp}
 spec-dm-controller = off
 spec-draft-p-min = $LLAMA_MTP_P_MIN
 spec-draft-p-min-s = $LLAMA_MTP_P_MIN
@@ -231,7 +234,8 @@ llama_start() {
     --model "$MODEL_DIR/$LLAMA_FILE" \
     "${stream_args[@]}" \
     --alias "${LLAMA_ALIASES:-$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B}" \
-    --load-mode none \
+    --load-mode "${LLAMA_LOAD_MODE:-none}" \
+    --lazy-mode "${LLAMA_LAZY_MODE:-auto}" \
     --parallel 1 \
     --device CUDA0 \
     --flash-attn on \
@@ -241,7 +245,7 @@ llama_start() {
     --slots \
     --cache-prompt \
     --no-context-shift \
-    --gpu-layers 99 \
+    --gpu-layers "${LLAMA_GPU_LAYERS:-99}" \
     --cache-type-k "$LLAMA_KV_TYPE" \
     --cache-type-v "$LLAMA_KV_TYPE" \
     --spec-draft-type-k "$LLAMA_KV_TYPE" \
@@ -269,7 +273,7 @@ llama_start() {
     --ovf-qwht-cuda \
     --no-vk-get-rows-q4-0-f16vec \
     --no-warmup \
-    --spec-type draft-mtp \
+    --spec-type "${LLAMA_SPEC_TYPE:-draft-mtp}" \
     --spec-dm-controller off \
     --spec-draft-p-min "$LLAMA_MTP_P_MIN" \
     --spec-draft-p-min-s "$LLAMA_MTP_P_MIN" \
