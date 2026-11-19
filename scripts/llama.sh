@@ -131,8 +131,8 @@ context-shift = false
 gpu-layers = ${LLAMA_GPU_LAYERS:-99}
 cache-type-k = $LLAMA_KV_TYPE
 cache-type-v = $LLAMA_KV_TYPE
-spec-draft-type-k = $LLAMA_KV_TYPE
-spec-draft-type-v = $LLAMA_KV_TYPE
+spec-draft-type-k = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
+spec-draft-type-v = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
 cache-ram = ${LLAMA_CACHE_RAM:-8192}
 slot-save-auto = true
 slot-save-max-count = ${LLAMA_SLOT_SAVE_MAX_COUNT:-64}
@@ -178,8 +178,8 @@ batch-size-s = $LLAMA_BATCH
 ubatch-size-s = $LLAMA_UBATCH
 cache-type-k-s = $LLAMA_KV_TYPE
 cache-type-v-s = $LLAMA_KV_TYPE
-spec-draft-type-k-s = $LLAMA_KV_TYPE
-spec-draft-type-v-s = $LLAMA_KV_TYPE
+spec-draft-type-k-s = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
+spec-draft-type-v-s = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
 spec-draft-n-max-s = $LLAMA_MTP_DRAFT
 
 ; Tier M
@@ -189,8 +189,8 @@ batch-size-m = $LLAMA_BATCH
 ubatch-size-m = $LLAMA_UBATCH
 cache-type-k-m = $LLAMA_KV_TYPE
 cache-type-v-m = $LLAMA_KV_TYPE
-spec-draft-type-k-m = $LLAMA_KV_TYPE
-spec-draft-type-v-m = $LLAMA_KV_TYPE
+spec-draft-type-k-m = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
+spec-draft-type-v-m = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
 spec-draft-n-max-m = $LLAMA_MTP_DRAFT
 
 ; Tier L
@@ -199,8 +199,8 @@ batch-size-l = $LLAMA_BATCH
 ubatch-size-l = $LLAMA_UBATCH
 cache-type-k-l = $LLAMA_KV_TYPE
 cache-type-v-l = $LLAMA_KV_TYPE
-spec-draft-type-k-l = $LLAMA_KV_TYPE
-spec-draft-type-v-l = $LLAMA_KV_TYPE
+spec-draft-type-k-l = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
+spec-draft-type-v-l = ${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}
 spec-draft-n-max-l = $LLAMA_MTP_DRAFT_L
 
 ctx-size-xl = 0
@@ -248,8 +248,8 @@ llama_start() {
     --gpu-layers "${LLAMA_GPU_LAYERS:-99}" \
     --cache-type-k "$LLAMA_KV_TYPE" \
     --cache-type-v "$LLAMA_KV_TYPE" \
-    --spec-draft-type-k "$LLAMA_KV_TYPE" \
-    --spec-draft-type-v "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
+    --spec-draft-type-v "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
     --cache-ram "${LLAMA_CACHE_RAM:-8192}" \
     --slot-save-auto \
     --slot-save-max-count "${LLAMA_SLOT_SAVE_MAX_COUNT:-64}" \
@@ -284,8 +284,8 @@ llama_start() {
     --ubatch-size-s "$LLAMA_UBATCH" \
     --cache-type-k-s "$LLAMA_KV_TYPE" \
     --cache-type-v-s "$LLAMA_KV_TYPE" \
-    --spec-draft-type-k-s "$LLAMA_KV_TYPE" \
-    --spec-draft-type-v-s "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k-s "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
+    --spec-draft-type-v-s "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
     --spec-draft-n-max-s "$LLAMA_MTP_DRAFT" \
     --ctx-size-m "$TIER_M_CTX" \
     --mtp-m-max-tokens "$TIER_M_CTX" \
@@ -293,16 +293,16 @@ llama_start() {
     --ubatch-size-m "$LLAMA_UBATCH" \
     --cache-type-k-m "$LLAMA_KV_TYPE" \
     --cache-type-v-m "$LLAMA_KV_TYPE" \
-    --spec-draft-type-k-m "$LLAMA_KV_TYPE" \
-    --spec-draft-type-v-m "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k-m "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
+    --spec-draft-type-v-m "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
     --spec-draft-n-max-m "$LLAMA_MTP_DRAFT" \
     --ctx-size-l "$LLAMA_CONTEXT" \
     --batch-size-l "$LLAMA_BATCH" \
     --ubatch-size-l "$LLAMA_UBATCH" \
     --cache-type-k-l "$LLAMA_KV_TYPE" \
     --cache-type-v-l "$LLAMA_KV_TYPE" \
-    --spec-draft-type-k-l "$LLAMA_KV_TYPE" \
-    --spec-draft-type-v-l "$LLAMA_KV_TYPE" \
+    --spec-draft-type-k-l "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
+    --spec-draft-type-v-l "${LLAMA_SPEC_KV_TYPE:-$LLAMA_KV_TYPE}" \
     --spec-draft-n-max-l "$LLAMA_MTP_DRAFT_L" \
     --ctx-size-xl 0 \
     --ctx-size-xxl 0 \

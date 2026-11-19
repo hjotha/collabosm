@@ -22,7 +22,7 @@ class LlamaRecipeTests(unittest.TestCase):
         # Distinct values catch a preset or CLI argument accidentally left hardcoded.
         recipe.find(reg, "g4/swift-qwen38-iq3s")["env"].update(
             LLAMA_BATCH=1024, LLAMA_UBATCH=128, LLAMA_MTP_DRAFT=3, LLAMA_MTP_DRAFT_L=1,
-            LLAMA_MTP_P_MIN=0.75, LLAMA_KV_TYPE="q8_0",
+            LLAMA_MTP_P_MIN=0.75, LLAMA_KV_TYPE="q8_0", LLAMA_SPEC_KV_TYPE="f16",
         )
         with tempfile.TemporaryDirectory() as work:
             root = Path(work)
@@ -62,6 +62,15 @@ wait "$!"
                             name = f"{option}-{tier}"
                             self.assertIn(f"{name} = {env[key]}", ini)
                             self.assertEqual(flags[flags.index("--" + name) + 1], env[key])
+                    spec_kv = env.get("LLAMA_SPEC_KV_TYPE") or env["LLAMA_KV_TYPE"]
+                    for suffix in ("k", "v"):
+                        name = f"spec-draft-type-{suffix}"
+                        self.assertIn(f"{name} = {spec_kv}", ini)
+                        self.assertEqual(flags[flags.index("--" + name) + 1], spec_kv)
+                        for tier in ("s", "m", "l"):
+                            name = f"spec-draft-type-{suffix}-{tier}"
+                            self.assertIn(f"{name} = {spec_kv}", ini)
+                            self.assertEqual(flags[flags.index("--" + name) + 1], spec_kv)
 
 
 if __name__ == "__main__":
