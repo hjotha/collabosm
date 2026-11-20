@@ -7,7 +7,11 @@
       "id": "a100-40g",
       "card": "A100-40G",
       "accelerator": "A100",
-      "fallback_accelerators": ["A100:hm", "G4:st", "H100"],
+      "fallback_accelerators": [
+        "A100:hm",
+        "G4:st",
+        "H100"
+      ],
       "shape": "st",
       "vram_gb": 40,
       "ram_gb": 83,
@@ -32,7 +36,7 @@
           "src": "Colab's standard A100 shape; not probed here"
         },
         "high_mem": {
-          "v": "80 GB VRAM · 167 GiB RAM",
+          "v": "80 GB VRAM \u00b7 167 GiB RAM",
           "measured": true,
           "src": "2026-11-20: colab new --gpu A100 --high-mem assigned A100-SXM4-80GB, 79.3 GiB VRAM, 167.1 GiB RAM, Shape: High-RAM. The catalog exposes this as the a100-80g-hm card."
         }
@@ -42,7 +46,10 @@
       "id": "a100-80g-hm",
       "card": "A100-80G High-RAM",
       "accelerator": "A100",
-      "fallback_accelerators": ["G4:st", "H100"],
+      "fallback_accelerators": [
+        "G4:st",
+        "H100"
+      ],
       "shape": "hm",
       "vram_gb": 80,
       "ram_gb": 167,
@@ -70,9 +77,14 @@
     },
     {
       "id": "t4-free",
-      "card": "T4 · 16 GB",
+      "card": "T4 \u00b7 16 GB",
       "accelerator": "T4",
-      "fallback_accelerators": ["A100:st", "A100:hm", "G4:st", "H100"],
+      "fallback_accelerators": [
+        "A100:st",
+        "A100:hm",
+        "G4:st",
+        "H100"
+      ],
       "shape": "st",
       "high_mem": true,
       "high_mem_ram_gb": 50,
@@ -88,7 +100,7 @@
           "src": "Medido pela comunidade em conta Pro: Qiita 2026-02 = 1.19 CU/h; Zenn 2026-07 = 1.15 CU/h; Fastero 2026-11 = ~1.1-1.2 CU/h. Na conta gratuita (sem unidades) e 0."
         },
         "high_mem": {
-          "v": "50 GiB RAM · 16 GB VRAM",
+          "v": "50 GiB RAM \u00b7 16 GB VRAM",
           "measured": true,
           "src": "2026-11-20 Colab T4 high-RAM test: free -h 50Gi total, nvidia-smi Tesla T4 15,360 MiB, 8 vCPU; colab sessions reported Shape: High-RAM."
         }
@@ -96,7 +108,7 @@
     },
     {
       "id": "g4",
-      "card": "G4 · Blackwell",
+      "card": "G4 \u00b7 Blackwell",
       "accelerator": "G4",
       "shape": "st",
       "vram_gb": 96,
@@ -113,13 +125,13 @@
           "v": 95.6,
           "unit": "GiB",
           "measured": false,
-          "src": "Colab G4: NVIDIA RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (95.6 GiB) reportados em teste público de 2026-10-20."
+          "src": "Colab G4: NVIDIA RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (95.6 GiB) reportados em teste p\u00fablico de 2026-10-20."
         },
         "ram": {
           "v": 176,
           "unit": "GiB",
           "measured": false,
-          "src": "Colab G4 standard shape: 176 GB de RAM no mesmo teste público."
+          "src": "Colab G4 standard shape: 176 GB de RAM no mesmo teste p\u00fablico."
         },
         "high_mem": {
           "v": "not offered",
@@ -139,14 +151,15 @@
       "repo": "turboderp/Qwen3.8-Flash-Next-exl3",
       "branch": "4.05bpw_h6_ng6",
       "revision": "55a732e0c4c3d4614bc42b68493bb930d9b02c0a",
-      "dir": "/content/exl3",
+      "dir": "/content/collabosm-llama/model-qwen38-fn-exl3",
       "served_id": "qwen3.8-flash-next-exl3",
       "bytes": 107463600896,
       "native_ctx": 262144,
       "vision": true,
       "mtp": true,
       "ngram": true,
-      "recurrent": true
+      "recurrent": true,
+      "engine": "llama"
     },
     {
       "id": "qwen38-27b",
@@ -157,14 +170,15 @@
       "repo": "turboderp/Qwen3.8-27B-exl3",
       "branch": "SC_4.00bpw_H5_V6",
       "revision": "516bf129059031c6da9416768ea6b7a1be00a8fc",
-      "dir": "/content/models/qwen38-27b",
+      "dir": "/content/collabosm-llama/model-qwen38-27b-exl3",
       "served_id": "qwen3.8-27b-exl3",
       "bytes": 16384243706,
       "native_ctx": 262144,
       "vision": true,
       "mtp": true,
       "ngram": false,
-      "recurrent": true
+      "recurrent": true,
+      "engine": "llama"
     },
     {
       "id": "qwen38-fn-strata",
@@ -280,18 +294,32 @@
       "id": "a100-40g/qwen38-27b",
       "gpu": "a100-40g",
       "model": "qwen38-27b",
-      "status": "unmeasured",
+      "status": "verified",
       "eta_min": 6,
       "env": {
-        "CACHE_SIZE": 819200,
-        "CACHE_QUANT": 4,
-        "CPU_CACHE_GB": 16,
-        "RECURRENT_CACHE_GB": 16,
-        "NDT": 4,
-        "GCS": 8192,
-        "VISION": 1,
-        "YARN_FACTOR": 1.5625,
-        "CONCURRENCY": 2
+        "LLAMA_EXL3_DIR": 1,
+        "LLAMA_STREAM_VRAM": 1,
+        "LLAMA_FILE": "",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 0,
+        "TIER_M_CTX": 0,
+        "LLAMA_BATCH": 4096,
+        "LLAMA_UBATCH": 2048,
+        "LLAMA_KV_TYPE": "q4_0",
+        "LLAMA_SPEC_KV_TYPE": "q8_0",
+        "LLAMA_SPEC_TYPE": "draft-mtp",
+        "LLAMA_MTP_DRAFT": 4,
+        "LLAMA_MTP_DRAFT_L": 4,
+        "LLAMA_MTP_P_MIN": 0,
+        "LLAMA_LOAD_MODE": "none",
+        "LLAMA_LAZY_MODE": "auto",
+        "BEELLAMA_ZIP": "beellama-a100-exl3-cuda.zip",
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-exl3-20261120/beellama-a100-exl3-cuda.zip",
+        "ASSIGN_RETRIES": 8,
+        "ASSIGN_RETRY_DELAY": 15,
+        "LLAMA_ALIASES": "qwen3.8-27b-exl3,qwen-3.8-27b,Qwen3.8-27B",
+        "LLAMA_CTX_CHECKPOINTS": 16,
+        "COLLABOSM_INITIAL_WAIT_S": 20
       },
       "facts": {
         "weights": {
@@ -419,16 +447,29 @@
       "status": "verified",
       "eta_min": 11,
       "env": {
-        "CACHE_SIZE": 500224,
-        "CACHE_QUANT": 4,
-        "CPU_CACHE_GB": 32,
-        "RECURRENT_CACHE_GB": 24,
-        "NDT": 4,
-        "GCS": 8192,
-        "VISION": 1,
-        "EXL3_VISION_PINNED": 1,
-        "YARN_FACTOR": 2,
-        "CONCURRENCY": 1
+        "LLAMA_EXL3_DIR": 1,
+        "LLAMA_STREAM_VRAM": 1,
+        "LLAMA_FILE": "",
+        "LLAMA_CONTEXT": 262144,
+        "TIER_S_CTX": 0,
+        "TIER_M_CTX": 0,
+        "LLAMA_BATCH": 4096,
+        "LLAMA_UBATCH": 2048,
+        "LLAMA_KV_TYPE": "f16",
+        "LLAMA_SPEC_KV_TYPE": "q8_0",
+        "LLAMA_SPEC_TYPE": "draft-mtp",
+        "LLAMA_MTP_DRAFT": 4,
+        "LLAMA_MTP_DRAFT_L": 4,
+        "LLAMA_MTP_P_MIN": 0,
+        "LLAMA_LOAD_MODE": "none",
+        "LLAMA_LAZY_MODE": "auto",
+        "BEELLAMA_ZIP": "beellama-a100-exl3-cuda.zip",
+        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-exl3-20261120/beellama-a100-exl3-cuda.zip",
+        "ASSIGN_RETRIES": 8,
+        "ASSIGN_RETRY_DELAY": 15,
+        "LLAMA_ALIASES": "qwen3.8-flash-next-exl3",
+        "LLAMA_CTX_CHECKPOINTS": 16,
+        "COLLABOSM_INITIAL_WAIT_S": 60
       },
       "facts": {
         "weights": {
@@ -570,7 +611,7 @@
       "env": {},
       "why": {
         "en": "Pinned Project Maya and Maya-L were measured directly; the CollabOSM launch/tunnel path is built but has not had a paid end-to-end run. Chat-only, text-only; no Responses API.",
-        "zh": "固定版本 Project Maya 与 Maya-L 已直接实测；CollabOSM 启动和隧道流程已接入，但尚未付费端到端复测。仅支持文本聊天，不支持 Responses API。"
+        "zh": "\u56fa\u5b9a\u7248\u672c Project Maya \u4e0e Maya-L \u5df2\u76f4\u63a5\u5b9e\u6d4b\uff1bCollabOSM \u542f\u52a8\u548c\u96a7\u9053\u6d41\u7a0b\u5df2\u63a5\u5165\uff0c\u4f46\u5c1a\u672a\u4ed8\u8d39\u7aef\u5230\u7aef\u590d\u6d4b\u3002\u4ec5\u652f\u6301\u6587\u672c\u804a\u5929\uff0c\u4e0d\u652f\u6301 Responses API\u3002"
       },
       "facts": {
         "weights": {

@@ -43,6 +43,36 @@ PY
     ldd "$bin" "$(dirname "$bin")/libggml-cuda.so" 2>&1 | grep 'not found' >&2
     return 1
   fi
+  if [ "${LLAMA_EXL3_DIR:-0}" = "1" ]; then
+    if [ "${LLAMA_STREAM_VRAM:-0}" = "1" ]; then
+      echo "[llama] direct EXL3 HF->VRAM streaming enabled (--hf-stream-vram); skipping pre-download to disk"
+      return 0
+    fi
+    local want="${MODEL_REPO}@${MODEL_REVISION}"
+    if [ -f "$MODEL_DIR/config.json" ] && [ "$(cat "$MODEL_DIR/.collabosm-revision" 2>/dev/null)" = "$want" ]; then
+      echo "[llama] EXL3 weights already present: $want in $MODEL_DIR"
+      return 0
+    fi
+    status "stage=weights"
+    mkdir -p "$MODEL_DIR" || return 1
+    HF_HUB_DISABLE_XET=${HF_HUB_DISABLE_XET:-0} python3 - <<'SNAP' || return 1
+import importlib.util, os
+if importlib.util.find_spec("hf_transfer") is not None:
+    os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "1")
+from huggingface_hub import snapshot_download
+p = snapshot_download(
+    repo_id=os.environ["MODEL_REPO"],
+    revision=os.environ.get("MODEL_REVISION") or None,
+    local_dir=os.environ["MODEL_DIR"],
+    max_workers=8,
+    ignore_patterns=["*cal_trace*", "*vision_*"],
+)
+print("[llama] EXL3 snapshot at", p, flush=True)
+SNAP
+    [ -f "$MODEL_DIR/config.json" ] || { echo "ERROR: missing $MODEL_DIR/config.json after EXL3 download" >&2; return 1; }
+    printf '%s\n' "$want" > "$MODEL_DIR/.collabosm-revision"
+    return 0
+  fi
   if [ "${LLAMA_STREAM_VRAM:-1}" = "1" ]; then
     echo "[llama] direct HF->VRAM streaming enabled (--hf-stream-vram); skipping pre-download to disk"
     return 0
@@ -107,11 +137,13 @@ PY
 }
 
 llama_write_ini() {
-  local ini=/content/collabosm-llama/t4-production.ini key value
+  local ini=/content/collabosm-llama/t4-production.ini key value model_path
   # Keep hand-run serve.sh and older VM environments on the catalog's defaults.
   while IFS='=' read -r key value; do
     [[ -n "${!key:-}" ]] || printf -v "$key" '%s' "$value"
   done < "$(dirname -- "${BASH_SOURCE[0]}")/llama-defaults.env" || return 1
+  model_path="$MODEL_DIR/$LLAMA_FILE"
+  [ "${LLAMA_EXL3_DIR:-0}" = "1" ] && model_path="$MODEL_DIR"
   cat > "$ini" <<EOF
 ; CollabOSM beellama preset (local KV tiers, no remote-attn)
 version = 1
@@ -157,8 +189,10 @@ native-snapshot-auto-restore = true
 adaptive-direct-pure-disk-restore = true
 
 [$MODEL_ID]
-model = $MODEL_DIR/$LLAMA_FILE
+model = $model_path
 alias = ${LLAMA_ALIASES:-$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B}
+batch-size = $LLAMA_BATCH
+ubatch-size = $LLAMA_UBATCH
 load-on-startup = true
 no-warmup = true
 slot-save-auto = true
@@ -210,30 +244,55 @@ EOF
 }
 
 llama_start() {
-  local bin model_url
+  local bin model_url model_path
   bin=$(find /content/collabosm-llama/llama -maxdepth 4 -type f -name llama-server -print -quit)
   [ -n "$bin" ] || return 1
-  if [ "${LLAMA_STREAM_VRAM:-1}" != "1" ] && [ ! -f "$MODEL_DIR/$LLAMA_FILE" ]; then
-    return 1
+  if [ "${LLAMA_EXL3_DIR:-0}" = "1" ]; then
+    model_path="$MODEL_DIR"
+    if [ "${LLAMA_STREAM_VRAM:-0}" != "1" ] && [ ! -f "$MODEL_DIR/config.json" ]; then
+      return 1
+    fi
+  else
+    model_path="$MODEL_DIR/$LLAMA_FILE"
+    if [ "${LLAMA_STREAM_VRAM:-1}" != "1" ] && [ ! -f "$model_path" ]; then
+      return 1
+    fi
   fi
   export LD_LIBRARY_PATH="$(dirname "$bin"):/usr/local/cuda/lib64:/usr/lib64-nvidia:${LD_LIBRARY_PATH:-}"
   llama_write_ini || return 1
-  model_url="https://huggingface.co/${MODEL_REPO}/resolve/${MODEL_REVISION:-main}/${LLAMA_FILE}"
   LLAMA_PROC='collabosm-llama/llama.*/llama-server'
   local stream_args=()
-  if [ ! -f "$MODEL_DIR/$LLAMA_FILE" ]; then
-    stream_args=(
-      --model-url "$model_url"
-      --hf-stream-vram
-      --hf-download-threads "${LLAMA_HF_THREADS:-16}"
-      --hf-stream-chunk-mb "${LLAMA_HF_CHUNK_MB:-8}"
-      --hf-stream-disk-mode "${LLAMA_HF_DISK_MODE:-background}"
-    )
+  if [ "${LLAMA_EXL3_DIR:-0}" = "1" ]; then
+    if [ "${LLAMA_STREAM_VRAM:-0}" = "1" ]; then
+      stream_args=(
+        --hf-repo "${MODEL_REPO}"
+        --hf-stream-vram
+        --hf-download-threads "${LLAMA_HF_THREADS:-16}"
+        --hf-stream-chunk-mb "${LLAMA_HF_CHUNK_MB:-8}"
+        --hf-stream-disk-mode "${LLAMA_HF_DISK_MODE:-background}"
+      )
+      if [ -n "${MODEL_REVISION:-}" ]; then
+        stream_args+=(--hf-branch "${MODEL_REVISION}")
+      fi
+    fi
+  else
+    if [ "${LLAMA_STREAM_VRAM:-1}" = "1" ] && [ ! -f "$model_path" ]; then
+      model_url="https://huggingface.co/${MODEL_REPO}/resolve/${MODEL_REVISION:-main}/${LLAMA_FILE}"
+      stream_args=(
+        --model-url "$model_url"
+        --hf-stream-vram
+        --hf-download-threads "${LLAMA_HF_THREADS:-16}"
+        --hf-stream-chunk-mb "${LLAMA_HF_CHUNK_MB:-8}"
+        --hf-stream-disk-mode "${LLAMA_HF_DISK_MODE:-background}"
+      )
+    fi
   fi
   nohup "$bin" \
-    --model "$MODEL_DIR/$LLAMA_FILE" \
+    --model "$model_path" \
     "${stream_args[@]}" \
     --alias "${LLAMA_ALIASES:-$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B}" \
+    --batch-size "$LLAMA_BATCH" \
+    --ubatch-size "$LLAMA_UBATCH" \
     --load-mode "${LLAMA_LOAD_MODE:-none}" \
     --lazy-mode "${LLAMA_LAZY_MODE:-auto}" \
     --parallel 1 \
