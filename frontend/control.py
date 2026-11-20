@@ -123,8 +123,8 @@ from accounts import Accounts  # noqa: E402
 
 REGISTRY = registry.load()
 RECIPES = registry.flat(REGISTRY)
-GPUS = [{k: g.get(k) for k in ("id", "card", "accelerator", "shape", "vram_gb", "ram_gb",
-                               "cu_per_hour", "free_tier", "facts")} for g in REGISTRY["gpus"]]
+GPUS = [{k: g.get(k) for k in ("id", "card", "accelerator", "shape", "high_mem", "high_mem_ram_gb",
+                               "vram_gb", "ram_gb", "cu_per_hour", "free_tier", "facts")} for g in REGISTRY["gpus"]]
 MODELS = [{k: m.get(k) for k in ("id", "name", "params", "quant", "native_ctx", "vision",
                                  "bytes")} for m in REGISTRY["models"]]
 
@@ -714,10 +714,12 @@ class Control:
         st["colab"].update(self.accounts.snapshot())
         return st
 
-    def select(self, recipe_id: str, confirm: bool = False) -> dict:
+    def select(self, recipe_id: str, confirm: bool = False, high_mem: bool = False) -> dict:
         recipe = next((r for r in RECIPES if r["id"] == recipe_id), None)
         if recipe is None:
             return {"ok": False, "code": "unknown_recipe"}
+        if high_mem and not recipe.get("high_mem"):
+            return {"ok": False, "code": "no_high_mem", "recipe": recipe["id"]}
         # judged on an answer: a Start pressed while the first look is still out waits
         account_id = self.accounts.snapshot()["active_account"]
         colab = self.colab.settled(15)
@@ -745,8 +747,10 @@ class Control:
             if colab["stage"] != "connected":
                 # no CLI, or no sign-in: `up` would fail at its first Colab call
                 return {"ok": False, "code": "colab_setup", "stage": colab["stage"]}
-            if confirm and (self.state.get("confirm") or {}).get("recipe") != recipe_id:
-                return {"ok": False, "code": "confirmation_expired"}
+            if confirm:
+                pending = self.state.get("confirm") or {}
+                if pending.get("recipe") != recipe_id or bool(pending.get("high_mem")) != bool(high_mem):
+                    return {"ok": False, "code": "confirmation_expired"}
             bal = self.state.get("balance") or {}
             left = bal["cu"] if bal.get("cu") is not None else self.state["cu_left"]
             rate = self._effective_rate(recipe)
@@ -755,8 +759,11 @@ class Control:
             if not free_tier and left < max(3.0, need):
                 return {"ok": False, "code": "budget", "cu_left": round(left, 1),
                         "cu_need": round(need, 1)}
-            warn = {"recipe": recipe["id"], "card": recipe["card"], "model": recipe["model"],
+            card = recipe["card"] + (" · High-RAM" if high_mem else "")
+            ram = recipe.get("high_mem_ram_gb") if high_mem else recipe.get("ram_gb")
+            warn = {"recipe": recipe["id"], "card": card, "model": recipe["model"],
                     "status": recipe["status"], "free_tier": free_tier,
+                    "high_mem": bool(high_mem), "ram_gb": ram, "vram_gb": recipe["vram_gb"],
                     "chat_only": (recipe["facts"].get("responses_api") or {}).get("v") is False,
                     "rate_measured": bool((recipe["facts"].get("cu_per_hour") or {}).get("measured")),
                     "cu_per_hour": rate,
@@ -775,7 +782,7 @@ class Control:
             # taken before the lock is released: a second confirmed select (another
             # tab, a double click) must find the stage busy, not start a second VM
             self.state.update(stage="requesting", confirm=None)
-        self._start_job(recipe)
+        self._start_job(recipe, high_mem=high_mem)
         return {"ok": True, "code": "started", "recipe": recipe["id"]}
 
     def cancel(self) -> dict:
@@ -937,11 +944,12 @@ class Control:
 
     # ---- provisioning ---------------------------------------------------- #
 
-    def _start_job(self, recipe: dict) -> None:
+    def _start_job(self, recipe: dict, high_mem: bool = False) -> None:
         self._stop_ssh_tunnel()
         with self.lock:
             self.epoch += 1
             self.job_recipe = recipe
+            self.job_high_mem = bool(high_mem)
             self.job_started = time.time()
             self.stage_started = time.time()
             self.stop_wanted = False
@@ -949,16 +957,17 @@ class Control:
             self.charge_started = time.time()
             self.fake_vm_down = False
             self.last_activity = time.time()
+            card = recipe["card"] + (" · High-RAM" if high_mem else "")
             self.state.update(stage="requesting", progress=0.0,
                               note=_note("stage.requesting"), adopted=False, vm=None,
                               selected=recipe["id"], live_model=None, metrics=None,
                               confirm=None, endpoint=dict(NO_ENDPOINT), link=dict(NO_LINK),
-                              foot=_note("foot.billing", card=recipe["card"],
+                              foot=_note("foot.billing", card=card,
                                          cuph=self._effective_rate(recipe)))
         self._open_session(recipe)
         self._balance_soon()
         threading.Thread(target=self._beat, daemon=True).start()
-        threading.Thread(target=self._run, args=(recipe,), daemon=True).start()
+        threading.Thread(target=self._run, args=(recipe, high_mem), daemon=True).start()
 
     def _up_argv(self, recipe: dict) -> list:
         # only the id: provision.py resolves the card, the model and every flag from
@@ -968,7 +977,7 @@ class Control:
         return self.colab.script_argv("provision.py", ["up", "--session", self.session,
                                                        "--recipe", recipe["id"]])
 
-    def _spawn(self, recipe: dict):
+    def _spawn(self, recipe: dict, high_mem: bool = False):
         if self.fake:
             argv = [sys.executable, os.path.join(self.root, "frontend", "fake_provision.py")]
             return subprocess.Popen(argv, cwd=self.root, stdout=subprocess.PIPE,
@@ -979,6 +988,8 @@ class Control:
         env["WSL_UTF8"] = "1"        # wsl.exe otherwise prints UTF-16 for its own messages
         env["PYTHONIOENCODING"] = "utf-8"
         env["PYTHONUNBUFFERED"] = "1"   # every stage line as it happens, not at the end
+        if high_mem:
+            env["SHAPE"] = "hm"      # recipe.py's launch env uses setdefault, so this wins
         kwargs = {}
         if os.name == "nt":
             kwargs["creationflags"] = 0x08000000      # CREATE_NO_WINDOW
@@ -988,9 +999,9 @@ class Control:
                                 text=True, encoding="utf-8", errors="replace", bufsize=1,
                                 env=env, **kwargs)
 
-    def _run(self, recipe: dict) -> None:
+    def _run(self, recipe: dict, high_mem: bool = False) -> None:
         try:
-            proc = self._spawn(recipe)
+            proc = self._spawn(recipe, high_mem)
         except Exception as exc:
             self._fail(_note("fail.spawn", err=repr(exc)), "could not launch: %r" % exc,
                        vm_possible=False)

@@ -19,6 +19,9 @@ BASH = shutil.which("bash")
 class LlamaRecipeTests(unittest.TestCase):
     def test_preview_matches_ini_and_launch_flags(self):
         reg = recipe.load()
+        t4 = next(r for r in recipe.flat(reg) if r["id"] == "t4-free/swift-qwen38-iq3s")
+        self.assertTrue(t4["high_mem"])
+        self.assertEqual(t4["high_mem_ram_gb"], 50)
         # Distinct values catch a preset or CLI argument accidentally left hardcoded.
         recipe.find(reg, "g4/swift-qwen38-iq3s")["env"].update(
             LLAMA_BATCH=1024, LLAMA_UBATCH=128, LLAMA_MTP_DRAFT=3, LLAMA_MTP_DRAFT_L=1,

@@ -41,6 +41,17 @@ import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REGISTRY = os.path.expanduser("~/.config/colab-cli/sessions.json")
+# High-RAM shapes verified on 2026-11-20: CPU, T4 and A100 (A100-SXM4-80GB,
+# 79.3 GiB VRAM / 167.1 GiB RAM). G4 rejects shape=hm; L4/TPU have a single
+# shape; H100 is untested (no entitlement) but the CLI exposes the choice.
+HIGH_MEM_ACCELERATORS = frozenset({"CPU", "T4", "A100", "H100"})
+
+
+def high_mem_supported(accelerator: str) -> bool:
+    """Whether `shape=hm` is sent for this accelerator (2026-11-20 tests)."""
+    return (accelerator or "").upper() in HIGH_MEM_ACCELERATORS
+
+
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 from colab_record import extra_fields, keep_alive  # noqa: E402 - either CLI version
@@ -152,7 +163,12 @@ def create_high_ram(state, SessionState, name, accelerator, shape_code):
 
     `st` sends no shape at all: Colab's default is the standard 40 GB shape (every
     unpatched draw in colab.log came back machineShape 0), while `shape=st` itself
-    has never been sent and is not known to be accepted."""
+    has never been sent and is not known to be accepted.
+
+    `hm` is sent for the accelerators whose High-RAM shape was verified on
+    2026-11-20 (CPU, T4, A100). G4 rejects `shape=hm`; L4/TPU have a single shape;
+    H100 is untested but the CLI exposes it.
+    """
     from urllib.parse import urljoin
 
     import requests
@@ -168,8 +184,8 @@ def create_high_ram(state, SessionState, name, accelerator, shape_code):
             params["variant"] = variant.value
         if accelerator:
             params["accelerator"] = accelerator.value
-        if shape_code == "hm" and getattr(accelerator, "value", "") == "A100":
-            params["shape"] = shape_code      # <-- the only added field
+        if shape_code == "hm" and high_mem_supported(getattr(accelerator, "value", "")):
+            params["shape"] = shape_code      # the only added field
         return requests.Request("GET", url, params=params).prepare().url
 
     C.Client._build_assign_url = _build
@@ -300,17 +316,20 @@ def main():
         for a in live:
             mark = " (claimed by another local session)" if a.endpoint in caught else ""
             print("[restore] live: %s%s" % (describe(a), mark))
+        def _supports_hm(acc_name: str) -> bool:
+            return high_mem_supported(acc_name)
+
         def _parse_cand(raw: str, default_shape: str) -> tuple[str, str]:
             if ":" in raw:
                 acc_part, shape_part = raw.split(":", 1)
                 acc_name = acc_part.strip().upper()
                 sh = shape_part.strip().lower()
                 sh = sh if sh in ("st", "hm") else default_shape
-                return acc_name, (sh if acc_name == "A100" else "st")
+                return acc_name, (sh if _supports_hm(acc_name) else "st")
             acc_name = raw.strip().upper()
-            return acc_name, (default_shape if acc_name == "A100" else "st")
+            return acc_name, (default_shape if _supports_hm(acc_name) else "st")
 
-        candidates = [(args.accelerator.upper(), args.shape if args.accelerator.upper() == "A100" else "st")]
+        candidates = [(args.accelerator.upper(), args.shape if _supports_hm(args.accelerator.upper()) else "st")]
         for fb in (args.fallback_accelerators or "").split(","):
             fb = fb.strip()
             if not fb:

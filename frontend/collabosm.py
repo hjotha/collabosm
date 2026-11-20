@@ -400,10 +400,11 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.loads(raw or b"{}")
             except Exception:
                 return self._json(400, {"error": {"message": "bad json"}})
-            res = CONTROL.select(body.get("recipe"), confirm=bool(body.get("confirm")))
+            res = CONTROL.select(body.get("recipe"), confirm=bool(body.get("confirm")),
+                                 high_mem=bool(body.get("high_mem")))
             status = {"unknown_recipe": 404, "busy": 409, "budget": 409, "placeholder": 409,
                       "stop_first": 409, "stale_ledger": 409, "colab_setup": 409,
-                      "colab_native": 409, "attached": 409}.get(res.get("code"), 200)
+                      "colab_native": 409, "attached": 409, "no_high_mem": 409}.get(res.get("code"), 200)
             return self._json(status, res)
         if path.startswith("/control/colab/"):
             # the rail's Colab guide: each answers at once, the work runs behind it

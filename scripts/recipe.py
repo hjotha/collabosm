@@ -69,6 +69,12 @@ def validate(reg: dict) -> list:
                 out.append("gpu %s: no %s" % (g.get("id"), k))
         if g.get("shape") not in ("hm", "st"):
             out.append("gpu %s: shape must be hm or st" % g.get("id"))
+        if "high_mem" in g and not isinstance(g.get("high_mem"), bool):
+            out.append("gpu %s: high_mem must be boolean" % g.get("id"))
+        if g.get("high_mem"):
+            hm_ram = g.get("high_mem_ram_gb")
+            if isinstance(hm_ram, bool) or not isinstance(hm_ram, int) or hm_ram <= 0:
+                out.append("gpu %s: high_mem_ram_gb must be a positive integer" % g.get("id"))
         fb = g.get("fallback_accelerators")
         if fb is not None and (not isinstance(fb, list) or not all(isinstance(x, str) and x.strip() for x in fb)):
             out.append("gpu %s: fallback_accelerators must be a list of strings" % g.get("id"))
@@ -247,6 +253,7 @@ def flat(reg: dict) -> list:
             "gpu": g["id"], "card": g["card"], "accelerator": g["accelerator"],
             "shape": g["shape"], "cu_per_hour": g["cu_per_hour"], "free_tier": bool(g.get("free_tier")),
             "vram_gb": g["vram_gb"], "ram_gb": g.get("ram_gb"),
+            "high_mem": bool(g.get("high_mem")), "high_mem_ram_gb": g.get("high_mem_ram_gb"),
             "model_id": m["id"], "model": m["name"], "params": m.get("params"),
             "quant": m.get("quant"), "short": m.get("short") or (m.get("quant") or "").split(",")[0],
             "served_id": m["served_id"],

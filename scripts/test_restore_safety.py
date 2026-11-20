@@ -187,6 +187,41 @@ class RestoreSafety(unittest.TestCase):
         self.assertEqual(rc, 3)
         self.assertEqual(calls, ["A100"])
 
+    def test_high_mem_is_sent_only_for_supported_accelerators(self):
+        self.assertTrue(restore.high_mem_supported("T4"))
+        self.assertTrue(restore.high_mem_supported("A100"))
+        self.assertTrue(restore.high_mem_supported("CPU"))
+        self.assertFalse(restore.high_mem_supported("G4"))
+        self.assertFalse(restore.high_mem_supported("L4"))
+        self.assertFalse(restore.high_mem_supported("V5E1"))
+
+    def test_t4_high_mem_requests_hm_shape(self):
+        calls = []
+
+        def fake_create(state, SessionState, name, acc, shape):
+            calls.append((acc, shape))
+            return ("t4-hm-vm", "HIGH_RAM")
+
+        state = types.SimpleNamespace(
+            client=types.SimpleNamespace(list_assignments=lambda: []),
+            store=types.SimpleNamespace(get=lambda name: None))
+        fake_session = types.ModuleType("colab_cli.commands.session")
+        fake_session.Accelerator = types.SimpleNamespace(T4="T4", A100="A100", G4="G4", H100="H100")
+        modules = {"colab_cli": types.ModuleType("colab_cli"),
+                   "colab_cli.commands": types.ModuleType("colab_cli.commands"),
+                   "colab_cli.commands.session": fake_session}
+        with patch.dict(sys.modules, modules), \
+             patch.object(sys, "argv", ["restore.py", "--accelerator", "T4",
+                                        "--shape", "hm", "--min-vram-gib", "14", "--no-verify"]), \
+             patch.object(restore, "_import_colab_cli", return_value=(state, object)), \
+             patch.object(restore, "colab_argv", return_value=["colab"]), \
+             patch.object(restore, "claimed_endpoints", return_value=set()), \
+             patch.object(restore, "create_high_ram", side_effect=fake_create), \
+             contextlib.redirect_stdout(io.StringIO()):
+            rc = restore.main()
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, [("T4", "hm")])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -288,6 +288,10 @@
   .gpu .top b { font-size: 14px; font-weight: 650; }
   .gpu .chips { margin-top: 10px; gap: 5px; }
   .gpu .chip { padding: 0 8px; gap: 5px; }
+  .gpu .chip.hm { cursor: pointer; }
+  .gpu .chip.hm input { margin: 0; accent-color: var(--fg); cursor: pointer; }
+  .gpu .chip.hm input:disabled { cursor: default; }
+  .gpu .chip.hm.on { border-color: var(--fg); color: var(--fg); }
   .pick { position: relative; display: block; margin-top: 12px; }
   /* dressed like the card's other controls: transparent like its chips and its Start
      button (as tall as that button), with its icon and text on the chips' vertical lines */
@@ -494,8 +498,11 @@ const I18N = {
     'confirm.unmeasured': 'This complete launch path has not been verified end to end. Treat any estimates separately from measured model-only results.',
     'confirm.chat_only': 'Chat Completions only: this model server does not provide /v1/responses (Codex Responses is unsupported).',
     'confirm.rate': 'This card’s CU rate is Colab’s published figure, not one read from the account.',
+    'confirm.highmem': 'High-RAM shape: {ram} GB system RAM; the GPU VRAM stays {vram} GB.',
     'sec.gpus': 'GPUs', 'gpus.sum': '{n} cards · {r} recipes', 'gpus.running': 'running: {card}',
     'tip.rate': 'CU per hour — {how}', 'tip.gvram': 'GPU memory', 'tip.gram': 'Host RAM',
+    'hm.label': 'High-RAM', 'hm.tag': 'High-RAM',
+    'tip.highmem': 'Request Colab’s High-RAM shape: {ram} GB system RAM; the GPU VRAM stays {vram} GB. Verified on T4.',
     'how.measured': 'measured', 'how.estimate': 'an estimate',
     'model.label': 'Model',
     'status.verified': 'verified', 'status.unmeasured': 'not end-to-end verified', 'status.placeholder': 'not runnable',
@@ -652,6 +659,7 @@ const I18N = {
     'foot.failed': 'Failed. This attempt cost about {cu} CU.',
     'foot.adopted': 'Adopted: {card} on session {session} · billed and stoppable here',
     'code.unknown_recipe': 'No such recipe.',
+    'code.no_high_mem': 'This card has no High-RAM shape.',
     'code.attached': 'Attached to an external endpoint ({base}). Restart the frontend without --external-endpoint to request your own card.',
     'code.busy': 'Busy: {stage}.',
     'code.already': 'This recipe is already running.',
@@ -1287,6 +1295,7 @@ function saveFolds() {
     Object.entries(folds).filter(([k]) => !SESSION_FOLDS.includes(k))));
 }
 const choice = loadJSON('collabosm.choice', {});  // GPU id -> the recipe picked in its selector
+const hmChoice = loadJSON('collabosm.highmem', {});  // GPU id -> High-RAM shape requested
 let toastTimer = null;
 
 function pickLang() {
@@ -1640,6 +1649,7 @@ function confirmHTML(w) {
   const unmeasured = w.status && w.status !== 'verified';
   if (w.free_tier) return '<div class="confirm" role="group"><h3>' + esc(t('confirm.head')) + '</h3>'
     + '<div class="who"><b>' + esc(w.card) + '</b><span>' + esc(w.model) + '</span></div>'
+    + (w.high_mem ? '<p class="fine">' + esc(t('confirm.highmem', { ram: num(w.ram_gb, 0), vram: num(w.vram_gb, 0) })) + '</p>' : '')
     + '<p>Experimental: use a conta gratuita. A disponibilidade da T4 não é garantida; contas com créditos podem consumir unidades.</p>'
     + '<div class="actions">' + btn('go', t('btn.go'), 'primary', 'play') + btn('cancel', t('btn.cancel')) + '</div></div>';
   return '<div class="confirm" role="group" aria-label="' + esc(t('confirm.head')) + '">'
@@ -1655,6 +1665,7 @@ function confirmHTML(w) {
     + (unmeasured ? '<li class="warn">' + esc(t('confirm.unmeasured')) + '</li>' : '')
     + (w.chat_only ? '<li class="warn">' + esc(t('confirm.chat_only')) + '</li>' : '')
     + (w.rate_measured === false ? '<li class="warn">' + esc(t('confirm.rate')) + '</li>' : '')
+    + (w.high_mem ? '<li>' + esc(t('confirm.highmem', { ram: num(w.ram_gb, 0), vram: num(w.vram_gb, 0) })) + '</li>' : '')
     + '<li>' + esc(t('confirm.load', { need: num(w.cu_estimate, 1) })) + '</li>'
     + '<li>' + esc(t('confirm.stops', { idle: num(w.idle_stop_min, 0), max: num(w.max_session_h, 0) })) + '</li>'
     + '<li>' + esc(w.balance_real
@@ -1770,14 +1781,23 @@ function gpuHTML(g, locked) {
   const running = !!r && st.stage === 'ready' && st.selected === r.id;
   const rate = (g.facts || {}).cu_per_hour || {};
   const how = (f) => t(f && f.measured ? 'how.measured' : 'how.estimate');
+  const hm = !!g.high_mem && !!hmChoice[g.id];
+  const ram = hm ? (g.high_mem_ram_gb || g.ram_gb) : g.ram_gb;
   let h = '<article class="gpu' + (r && st.selected === r.id ? ' sel' : '') + '">'
     + '<div class="top"><b>' + esc(g.card) + '</b>'
-    + (running ? '<span class="tag solid">' + esc(t('tag.current')) + '</span>' : '') + '</div>'
+    + (running ? '<span class="tag solid">' + esc(t('tag.current')) + '</span>' : '')
+    + (hm ? '<span class="tag">' + esc(t('hm.tag')) + '</span>' : '') + '</div>'
     + '<div class="chips">'
     + '<span class="chip' + (rate.measured ? '' : ' off') + '" tabindex="0" data-tip="' + esc(t('tip.rate', { how: how(rate) }))
     + '">' + ico('coins') + '<b>' + (g.free_tier ? 'free tier' : num(g.cu_per_hour, 2) + '/h') + '</b></span>'
     + '<span class="chip" tabindex="0" data-tip="' + esc(t('tip.gvram')) + '">' + ico('cpu') + '<b>' + num(g.vram_gb, 0) + ' GB</b></span>'
-    + (g.ram_gb ? '<span class="chip" tabindex="0" data-tip="' + esc(t('tip.gram')) + '">' + ico('memory') + '<b>' + num(g.ram_gb, 0) + ' GB</b></span>' : '')
+    + (ram ? '<span class="chip" tabindex="0" data-tip="' + esc(t('tip.gram')) + '">' + ico('memory') + '<b>' + num(ram, 0) + ' GB</b></span>' : '')
+    + (g.high_mem
+      ? '<label class="chip hm' + (hm ? ' on' : ' off') + '" tabindex="0" data-tip="'
+        + esc(t('tip.highmem', { ram: num(g.high_mem_ram_gb || g.ram_gb, 0), vram: num(g.vram_gb, 0) })) + '">'
+        + '<input type="checkbox" data-hm="' + esc(g.id) + '"' + (hm ? ' checked' : '') + (locked ? ' disabled' : '') + '>'
+        + ico('memory') + '<b>' + esc(t('hm.label')) + '</b></label>'
+      : '')
     + '</div>';
   if (list.length) {
     h += '<label class="pick">' + ico('box', 'l')
@@ -1795,7 +1815,7 @@ function gpuHTML(g, locked) {
   }
   const can = !!r && r.runnable && !locked;
   h += '<button type="button" class="btn' + (running ? ' primary' : '') + '" data-act="pick" data-r="'
-    + esc(r ? r.id : '') + '"' + (can && !pending ? '' : ' disabled') + '>'
+    + esc(r ? r.id : '') + '" data-hm="' + (hm ? '1' : '0') + '"' + (can && !pending ? '' : ' disabled') + '>'
     + ico(running ? 'check' : 'play')
     + esc(t(running ? 'recipe.running' : (r && r.runnable ? 'recipe.pick' : 'recipe.na'))) + '</button>';
   return h + '</article>';
@@ -2267,7 +2287,7 @@ document.addEventListener('click', async (e) => {
     return say(r);
   }
   if (act === 'pick') {
-    const r = await post('/control/select', { recipe: b.dataset.r });
+    const r = await post('/control/select', { recipe: b.dataset.r, high_mem: b.dataset.hm === '1' });
     if (r && r.code === 'colab_setup') {     // the guide is where the next step is
       folds.colab = true;
       saveFolds();
@@ -2275,10 +2295,18 @@ document.addEventListener('click', async (e) => {
     }
     say(r);
   } else if (act === 'go' && st && st.confirm) {
-    say(await post('/control/select', { recipe: st.confirm.recipe, confirm: true }));
+    say(await post('/control/select', { recipe: st.confirm.recipe, confirm: true, high_mem: !!st.confirm.high_mem }));
   } else if (act === 'cancel') say(await post('/control/cancel', {}));
   else if (act === 'stop') say(await post('/control/stop', {}));
   else if (act === 'couple') say(await post('/control/couple', {}));
+});
+
+document.addEventListener('change', (e) => {
+  const c = e.target.closest && e.target.closest('input[data-hm]');
+  if (!c) return;
+  hmChoice[c.dataset.hm] = !!c.checked;
+  saveJSON('collabosm.highmem', hmChoice);
+  render();
 });
 
 document.addEventListener('change', (e) => {
