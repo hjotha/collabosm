@@ -795,9 +795,11 @@ class Control:
             self.state["confirm"] = None
         return {"ok": True, "code": "cancelled"}
 
-    def stop(self, reason: str = "manual") -> dict:
+    def stop(self, reason: str = "manual", target_session: str | None = None,
+             target_endpoint: str | None = None) -> dict:
         with self.lock:
             stage = self.state["stage"]
+            sessions = list(self.state["billing"].get("sessions") or [])
             if stage == "attached":
                 self.state.update(stage="idle", progress=0.0, live_model=None, metrics=None,
                                   endpoint=dict(NO_ENDPOINT), link=dict(NO_LINK), server=None,
@@ -807,7 +809,25 @@ class Control:
             if stage == "stopping":
                 return {"ok": True, "code": "already_stopping"}
             open_entry = self.ledger.get("open") is not None
-            ours_live = any(s.get("ours") for s in self.state["billing"].get("sessions") or [])
+            ours_live = any(s.get("ours") for s in sessions)
+            target_ep = (target_endpoint or "").strip()
+            target = next((s for s in sessions if target_ep and s.get("endpoint") == target_ep), None)
+            if target is not None and not target.get("ours"):
+                # Explicit, user-confirmed stop of a session this frontend did
+                # not start (e.g. created in the Colab web UI). Automatic
+                # paths never pass a target, so they still never touch
+                # foreign VMs.
+                with self.lock:
+                    self.state["stage"] = "stopping"
+                    self.state["note"] = _note("stopping", reason=reason)
+                    self.stop_wanted = True
+                    self.epoch += 1
+                threading.Thread(target=self._do_stop_target,
+                                 args=(dict(target), reason), daemon=True).start()
+                return {"ok": True, "code": "stopping", "reason": reason,
+                        "target": target.get("endpoint")}
+            if target_ep and target is None:
+                return {"ok": False, "code": "unknown_target"}
             if stage in ("idle", "stopped") and not (open_entry or ours_live):
                 return {"ok": True, "code": "nothing_to_stop"}
             # `failed` gets here on purpose: _fail() already ran `down`, and this
@@ -1106,6 +1126,46 @@ class Control:
                 self._log("[fe] cliproxyapi synced (model=%s, disabled=%s)" % (model_id or "-", disabled))
         except Exception as exc:
             self._log("[fe] cliproxyapi sync failed: %r" % exc)
+
+    def _run_down_session(self, session_name: str, endpoint: str | None) -> bool:
+        """Stop one explicitly named session at one endpoint.
+
+        Uses a throwaway local record name so our own session record is never
+        remapped: killing a foreign VM must not disturb a box we hold. The
+        endpoint must come from a live `colab sessions` listing (checked by
+        the caller); without it, `colab stop` cannot address the VM."""
+        if self.fake:
+            return True
+        args = ["down", "--session", session_name]
+        if endpoint and ENDPOINT_ID.match(endpoint):
+            args += ["--endpoint", endpoint]
+        out = self._wsl_run(self.colab.script_argv("provision.py", args), timeout=300)
+        if _needs_sign_in(out):
+            self._log("!! the stop could not sign in to Colab -- connect again in the Colab "
+                      "section, then press Stop again (until then the VM may still bill)")
+            self.colab.check()
+        for line in out.splitlines()[-6:]:
+            self._log(line)
+        return "COLLABOSM_STOP_OK" in out.splitlines()
+
+    def _do_stop_target(self, target: dict, reason: str) -> None:
+        if not self._run_down_session("tcb-stop-%d" % int(time.time()), target.get("endpoint")):
+            with self.lock:
+                self.state.update(stage="failed", note=_note("fail.stop"),
+                                  foot=_note("foot.control"))
+            self._log("!! targeted stop could not be verified; the VM may still be billing")
+            self._probe_sessions()
+            self._balance_soon()
+            return
+        cu = self._close_session(reason)
+        with self.lock:
+            self._let_go()
+            self.state.update(stage="stopped", progress=0.0,
+                              note=_note("stopped", reason=reason, cu=round(cu, 2)),
+                              foot=_note("foot.stopped", reason=reason))
+        self._refresh_money()
+        self._probe_sessions()
+        self._balance_soon()
 
     def _do_stop(self, reason: str, cu: float) -> None:
         if not self._run_down():

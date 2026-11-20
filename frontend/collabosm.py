@@ -418,7 +418,14 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/control/cancel":
             return self._json(200, CONTROL.cancel())
         if path == "/control/stop":
-            return self._json(200, CONTROL.stop("manual"))
+            try:
+                stop_body = json.loads(raw or b"{}")
+            except Exception:
+                stop_body = {}
+            if not isinstance(stop_body, dict):
+                stop_body = {}
+            return self._json(200, CONTROL.stop("manual", target_session=stop_body.get("session"),
+                                                target_endpoint=stop_body.get("endpoint")))
         if path == "/control/quit":
             # The page's Quit -- the only close button a windowless start has. Answer
             # first -- the whole answer is written before anything stops, or the
