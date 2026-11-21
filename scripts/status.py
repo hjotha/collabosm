@@ -57,3 +57,12 @@ print("tunnel:         " + (tunnel or "(none)"))
 print("model_cached:   " + str(model_cached))
 if listing:
     print("models:         " + listing[:400])
+try:
+    with open("/content/serve.log", errors="replace") as _fh:
+        _tail = _fh.read().splitlines()[-40:]
+    if _tail:
+        print("serve.log tail:")
+        for _line in _tail:
+            print("  " + _line[:300])
+except OSError:
+    pass

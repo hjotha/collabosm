@@ -1,945 +1,1075 @@
 {
-  "schema": 1,
-  "updated": "2026-11-20",
-  "about": "Which GPU runs which model, and how. scripts/recipe.py turns a recipe id into the environment scripts/up.sh launches with; the frontend lists what is here. Every number carries {v, measured, src}: measured means read on that card, anything else is an estimate and says so.",
-  "gpus": [
-    {
-      "id": "a100-40g",
-      "card": "A100-40G",
-      "accelerator": "A100",
-      "fallback_accelerators": [
-        "A100:hm",
-        "G4:st",
-        "H100"
-      ],
-      "shape": "st",
-      "vram_gb": 40,
-      "ram_gb": 83,
-      "min_vram_gib": 36,
-      "cu_per_hour": 5.37,
-      "facts": {
-        "cu_per_hour": {
-          "v": 5.37,
-          "measured": false,
-          "src": "Colab UI figure, never read from ccu-info"
-        },
-        "vram": {
-          "v": 39,
-          "unit": "GiB",
-          "measured": true,
-          "src": "a 40 GB draw probes at ~39 GiB (scripts/restore.py)"
-        },
-        "ram": {
-          "v": 83,
-          "unit": "GiB",
-          "measured": false,
-          "src": "Colab's standard A100 shape; not probed here"
-        },
-        "high_mem": {
-          "v": "80 GB VRAM \u00b7 167 GiB RAM",
-          "measured": true,
-          "src": "2026-11-20: colab new --gpu A100 --high-mem assigned A100-SXM4-80GB, 79.3 GiB VRAM, 167.1 GiB RAM, Shape: High-RAM. The catalog exposes this as the a100-80g-hm card."
-        }
-      }
+ "schema": 1,
+ "updated": "2026-11-20",
+ "about": "Which GPU runs which model, and how. scripts/recipe.py turns a recipe id into the environment scripts/up.sh launches with; the frontend lists what is here. Every number carries {v, measured, src}: measured means read on that card, anything else is an estimate and says so.",
+ "gpus": [
+  {
+   "id": "a100-40g",
+   "card": "A100-40G",
+   "accelerator": "A100",
+   "fallback_accelerators": [
+    "A100:hm",
+    "G4:st",
+    "H100"
+   ],
+   "shape": "st",
+   "vram_gb": 40,
+   "ram_gb": 83,
+   "min_vram_gib": 36,
+   "cu_per_hour": 5.37,
+   "facts": {
+    "cu_per_hour": {
+     "v": 5.37,
+     "measured": false,
+     "src": "Colab UI figure, never read from ccu-info"
     },
-    {
-      "id": "a100-80g-hm",
-      "card": "A100-80G High-RAM",
-      "accelerator": "A100",
-      "fallback_accelerators": [
-        "G4:st",
-        "H100"
-      ],
-      "shape": "hm",
-      "vram_gb": 80,
-      "ram_gb": 167,
-      "min_vram_gib": 70,
-      "cu_per_hour": 6.77,
-      "facts": {
-        "cu_per_hour": {
-          "v": 6.77,
-          "measured": true,
-          "src": "Colab /tun/m/ccu-info consumptionRateHourly with this box as the account's only assignment, 2026-10-10"
-        },
-        "vram": {
-          "v": 79.3,
-          "unit": "GiB",
-          "measured": true,
-          "src": "restore.py probe, docs/MEASURED.md"
-        },
-        "ram": {
-          "v": 167.1,
-          "unit": "GiB",
-          "measured": true,
-          "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10"
-        }
-      }
+    "vram": {
+     "v": 39,
+     "unit": "GiB",
+     "measured": true,
+     "src": "a 40 GB draw probes at ~39 GiB (scripts/restore.py)"
     },
-    {
-      "id": "t4-free",
-      "card": "T4 \u00b7 16 GB",
-      "accelerator": "T4",
-      "fallback_accelerators": [
-        "A100:st",
-        "A100:hm",
-        "G4:st",
-        "H100"
-      ],
-      "shape": "st",
-      "high_mem": true,
-      "high_mem_ram_gb": 50,
-      "vram_gb": 16,
-      "ram_gb": 12,
-      "min_vram_gib": 14,
-      "cu_per_hour": 1.2,
-      "free_tier": true,
-      "facts": {
-        "cu_per_hour": {
-          "v": 1.2,
-          "measured": false,
-          "src": "Medido pela comunidade em conta Pro: Qiita 2026-02 = 1.19 CU/h; Zenn 2026-07 = 1.15 CU/h; Fastero 2026-11 = ~1.1-1.2 CU/h. Na conta gratuita (sem unidades) e 0."
-        },
-        "high_mem": {
-          "v": "50 GiB RAM \u00b7 16 GB VRAM",
-          "measured": true,
-          "src": "2026-11-20 Colab T4 high-RAM test: free -h 50Gi total, nvidia-smi Tesla T4 15,360 MiB, 8 vCPU; colab sessions reported Shape: High-RAM."
-        }
-      }
+    "ram": {
+     "v": 83,
+     "unit": "GiB",
+     "measured": false,
+     "src": "Colab's standard A100 shape; not probed here"
     },
-    {
-      "id": "g4",
-      "card": "G4 \u00b7 Blackwell",
-      "accelerator": "G4",
-      "shape": "st",
-      "vram_gb": 96,
-      "ram_gb": 176,
-      "min_vram_gib": 90,
-      "cu_per_hour": 8.9,
-      "facts": {
-        "cu_per_hour": {
-          "v": 8.9,
-          "measured": false,
-          "src": "Tarifa G4 observada por terceiros em 2026-10-20; confirmar com `colab usage` na conta."
-        },
-        "vram": {
-          "v": 95.6,
-          "unit": "GiB",
-          "measured": false,
-          "src": "Colab G4: NVIDIA RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (95.6 GiB) reportados em teste p\u00fablico de 2026-10-20."
-        },
-        "ram": {
-          "v": 176,
-          "unit": "GiB",
-          "measured": false,
-          "src": "Colab G4 standard shape: 176 GB de RAM no mesmo teste p\u00fablico."
-        },
-        "high_mem": {
-          "v": "not offered",
-          "measured": true,
-          "src": "2026-11-20: colab new --gpu G4 --high-mem -> Backend rejected accelerator 'G4'; the same account without --high-mem got Service Unavailable (capacity). Do not expose a G4 high-RAM option."
-        }
-      }
+    "high_mem": {
+     "v": "80 GB VRAM \u00b7 167 GiB RAM",
+     "measured": true,
+     "src": "2026-11-20: colab new --gpu A100 --high-mem assigned A100-SXM4-80GB, 79.3 GiB VRAM, 167.1 GiB RAM, Shape: High-RAM. The catalog exposes this as the a100-80g-hm card."
     }
-  ],
-  "models": [
-    {
-      "id": "qwen38-fn",
-      "name": "Qwen3.8-Flash-Next",
-      "short": "EXL3 4-bit",
-      "params": "125B-A6B MoE",
-      "quant": "EXL3 4.05 bpw",
-      "repo": "turboderp/Qwen3.8-Flash-Next-exl3",
-      "branch": "4.05bpw_h6_ng6",
-      "revision": "55a732e0c4c3d4614bc42b68493bb930d9b02c0a",
-      "dir": "/content/collabosm-llama/model-qwen38-fn-exl3",
-      "served_id": "qwen3.8-flash-next-exl3",
-      "bytes": 107463600896,
-      "native_ctx": 262144,
-      "vision": true,
-      "mtp": true,
-      "ngram": true,
-      "recurrent": true,
-      "engine": "llama"
+   }
+  },
+  {
+   "id": "a100-80g-hm",
+   "card": "A100-80G High-RAM",
+   "accelerator": "A100",
+   "fallback_accelerators": [
+    "G4:st",
+    "H100"
+   ],
+   "shape": "hm",
+   "vram_gb": 80,
+   "ram_gb": 167,
+   "min_vram_gib": 70,
+   "cu_per_hour": 6.77,
+   "facts": {
+    "cu_per_hour": {
+     "v": 6.77,
+     "measured": true,
+     "src": "Colab /tun/m/ccu-info consumptionRateHourly with this box as the account's only assignment, 2026-10-10"
     },
-    {
-      "id": "qwen38-27b",
-      "name": "Qwen3.8-27B",
-      "short": "EXL3 4-bit",
-      "params": "27B dense, hybrid DeltaNet",
-      "quant": "EXL3 4.00 bpw, self-calibrated (head 5, vision 6 bits)",
-      "repo": "turboderp/Qwen3.8-27B-exl3",
-      "branch": "SC_4.00bpw_H5_V6",
-      "revision": "516bf129059031c6da9416768ea6b7a1be00a8fc",
-      "dir": "/content/collabosm-llama/model-qwen38-27b-exl3",
-      "served_id": "qwen3.8-27b-exl3",
-      "bytes": 16384243706,
-      "native_ctx": 262144,
-      "vision": true,
-      "mtp": true,
-      "ngram": false,
-      "recurrent": true,
-      "engine": "llama"
+    "vram": {
+     "v": 79.3,
+     "unit": "GiB",
+     "measured": true,
+     "src": "restore.py probe, docs/MEASURED.md"
     },
-    {
-      "id": "qwen38-fn-strata",
-      "name": "Qwen3.8-Flash-Next",
-      "short": "Strata 3.5-bit",
-      "params": "125B-A6B MoE",
-      "quant": "GGUF IQ3_S, 3.50 bpw (ISTA-DASLab GSQ-RCO), on Strata",
-      "engine": "strata",
-      "repo": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
-      "branch": "main",
-      "revision": "2a55d75962e22f7a4a1d9963ab6eae3678537831",
-      "dir": "/content/strata-data",
-      "served_id": "qwen3.8-flash-next-iq3_s",
-      "bytes": 83600000000,
-      "native_ctx": 262144,
-      "vision": true,
-      "mtp": true,
-      "ngram": true,
-      "recurrent": true,
-      "strata": {
-        "repo": "https://github.com/Niko1221/Strata",
-        "commit": "fb58e0dbc8399662c0e47c76578c6e878b14f6cf",
-        "build": true,
-        "cuda": "auto",
-        "quant": "IQ3_S",
-        "dir": "/content/strata-v0.1.41"
-      }
-    },
-    {
-      "id": "glm53-flash-maya-l",
-      "name": "GLM-5.3-Flash",
-      "short": "Maya-L GGUF",
-      "params": "321B MoE",
-      "quant": "Maya-L routed GGUF; IQ3_S gate/up, IQ4_XS down, Q5_K sensitive, Q6 attention",
-      "engine": "maya",
-      "repo": "peasantsmith/GLM-5.3-Flash-Maya-GGUF",
-      "branch": "Maya-L",
-      "revision": "f16ee4ba50d8fd2bb726ea1862ca6ca14ba188da",
-      "dir": "/content/Maya-data/models",
-      "served_id": "glm-5.3-flash",
-      "native_ctx": 1048576,
-      "vision": false,
-      "mtp": false,
-      "ngram": false,
-      "recurrent": false,
-      "maya": {
-        "repo": "https://github.com/mw00/project-maya.git",
-        "commit": "c189f7ac8114ca039e9643314d1fead014fc6ff5",
-        "model": "Maya-L",
-        "data_dir": "/content/Maya-data",
-        "model_dir": "/content/Maya-data/models",
-        "min_disk_gib": 180,
-        "min_vram_gib": 70,
-        "gpu": 0,
-        "vision": false,
-        "context": 131072,
-        "reserve_mb": 2048
-      }
-    },
-    {
-      "id": "qwen38-fn-iq3s",
-      "name": "Qwen3.8-Flash-Next",
-      "short": "GGUF IQ3_S",
-      "params": "125B-A6B MoE",
-      "quant": "GGUF IQ3_S, 3.50 bpw (ISTA-DASLab GSQ-RCO)",
-      "engine": "llama",
-      "repo": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
-      "revision": "2a55d75962e22f7a4a1d9963ab6eae3678537831",
-      "dir": "/content/collabosm-llama/model-qwen38fn",
-      "served_id": "qwen3.8-flash-next-iq3_s",
-      "native_ctx": 262144,
-      "vision": false,
-      "mtp": false,
-      "ngram": true,
-      "recurrent": true,
-      "bytes": 83617662656
-    },
-    {
-      "id": "swift-qwen38-iq3s",
-      "name": "Swift Qwen3.8-27B",
-      "short": "GGUF IQ3_S MTP",
-      "params": "27B",
-      "quant": "GGUF IQ3_S MTP",
-      "engine": "llama",
-      "repo": "ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF",
-      "revision": "d74895bbe5db4bec1e0024e7cc87d59c02d7631a",
-      "dir": "/content/collabosm-llama/model",
-      "served_id": "swift-qwen38-27b-iq3s",
-      "native_ctx": 262144,
-      "vision": false,
-      "mtp": true,
-      "bytes": 11361609472
-    },
-    {
-      "id": "sensenova-loop-9b",
-      "name": "SenseNova Loop 9B",
-      "short": "GGUF Q4_K_M MTP",
-      "params": "9B (14.6B eq.)",
-      "quant": "GGUF Q4_K_M MTP",
-      "engine": "llama",
-      "repo": "sensenova/SenseNova-Loop-9B-GGUF",
-      "revision": "11c121055062d33647348cf236a8c543138b282e",
-      "dir": "/content/collabosm-llama/model-sensenova",
-      "served_id": "sensenova-loop-9b",
-      "native_ctx": 524288,
-      "vision": false,
-      "mtp": true,
-      "bytes": 5818631072
+    "ram": {
+     "v": 167.1,
+     "unit": "GiB",
+     "measured": true,
+     "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10"
     }
-  ],
-  "recipes": [
-    {
-      "id": "a100-40g/qwen38-27b",
-      "gpu": "a100-40g",
-      "model": "qwen38-27b",
-      "status": "verified",
-      "eta_min": 6,
-      "env": {
-        "LLAMA_EXL3_DIR": 1,
-        "LLAMA_STREAM_VRAM": 1,
-        "LLAMA_FILE": "",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 0,
-        "TIER_M_CTX": 0,
-        "LLAMA_BATCH": 4096,
-        "LLAMA_UBATCH": 2048,
-        "LLAMA_KV_TYPE": "q4_0",
-        "LLAMA_SPEC_KV_TYPE": "q8_0",
-        "LLAMA_SPEC_TYPE": "draft-mtp",
-        "LLAMA_MTP_DRAFT": 4,
-        "LLAMA_MTP_DRAFT_L": 4,
-        "LLAMA_MTP_P_MIN": 0,
-        "LLAMA_LOAD_MODE": "none",
-        "LLAMA_LAZY_MODE": "auto",
-        "BEELLAMA_ZIP": "beellama-a100-exl3-cuda.zip",
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-exl3-20261120/beellama-a100-exl3-cuda.zip",
-        "ASSIGN_RETRIES": 8,
-        "ASSIGN_RETRY_DELAY": 15,
-        "LLAMA_ALIASES": "qwen3.8-27b-exl3,qwen-3.8-27b,Qwen3.8-27B",
-        "LLAMA_CTX_CHECKPOINTS": 16,
-        "COLLABOSM_INITIAL_WAIT_S": 20
-      },
-      "facts": {
-        "weights": {
-          "v": 15.26,
-          "unit": "GiB",
-          "measured": true,
-          "src": "16,384,243,706 B at branch SC_4.00bpw_H5_V6 (Hugging Face tree), embeddings, 6-bit vision tower and 4-bit MTP layer included; the pack's own plot puts this quant at KL 0.0062 vs ~0.015 for the plain 3.50 bpw it replaces"
-        },
-        "vram_mib": {
-          "v": 33500,
-          "measured": false,
-          "src": "derived: 17.1 GiB measured outside the KV on 2026-09-27 (26,746 MiB in all with Q8 KV at 262K) + Q4 KV for 819,200 tokens at 19,584 B each (16 attention layers + the MTP layer) = 14.9 GiB + the second recurrent state slot for two-way decode, 728 MiB (48 GDN layers x 48 heads x 128 x 128 fp32 x 5 for ndt 4, plus conv state); not yet loaded this way"
-        },
-        "prefill_tps": {
-          "v": 2544,
-          "measured": true,
-          "src": "32,551-token cold prompt, second of a pair, on the A100-40G 2026-09-27 with Q8 KV (4K: 2,935; 119K: 1,435)"
-        },
-        "decode_tps": {
-          "v": 50.4,
-          "measured": true,
-          "src": "512 tokens at 32K context, MTP ndt 4, on the A100-40G 2026-09-27 with Q8 KV (short context: 62.9; ~128K: ~44); Q4 reads half the KV per token, so long contexts should come out a little faster"
-        },
-        "eta_min": {
-          "v": 6,
-          "measured": true,
-          "src": "billing to READY in 5 min 51 s on 2026-09-27, 43.6 s of it a warm-up since cut to ~8K tokens"
-        },
-        "context": {
-          "v": 409600,
-          "measured": false,
-          "src": "per conversation: YaRN 1.5625 over the native 262,144 (the model card documents YaRN up to 1M); the 819,200-token cache holds two such conversations, decoding together; quality past 262K not measured"
-        },
-        "vision": {
-          "v": true,
-          "measured": false,
-          "src": "the tower is quantized to 6 bits inside the shards (needs ExLlamaV3 >= 1.4.4; 1.5.1 here); never loaded"
-        },
-        "concurrency": {
-          "v": 2,
-          "measured": false,
-          "src": "two jobs per engine step: -ambs 2 gives the second recurrent state slot, and api_server's one conductor thread drives the Generator for both; 2 x 409,600 positions fit the 819,200-token cache; a third request waits its turn; not yet run on this card"
-        },
-        "host_ram": {
-          "v": "ccs 16 + rcs 16 GiB",
-          "measured": false,
-          "src": "36.7 of 83.5 GiB in use on 2026-09-27; rcs is 16, not 8: a GDN checkpoint here is ~150 MB (48 layers x 48 heads x 128 x 128 fp32), one every ~2048 tokens, so an 86K-token Codex prompt leaves ~42 of them (~6 GB)"
-        }
-      }
+   }
+  },
+  {
+   "id": "t4-free",
+   "card": "T4 \u00b7 16 GB",
+   "accelerator": "T4",
+   "fallback_accelerators": [
+    "A100:st",
+    "A100:hm",
+    "G4:st",
+    "H100"
+   ],
+   "shape": "st",
+   "high_mem": true,
+   "high_mem_ram_gb": 50,
+   "vram_gb": 16,
+   "ram_gb": 12,
+   "min_vram_gib": 14,
+   "cu_per_hour": 1.2,
+   "free_tier": true,
+   "facts": {
+    "cu_per_hour": {
+     "v": 1.2,
+     "measured": false,
+     "src": "Medido pela comunidade em conta Pro: Qiita 2026-02 = 1.19 CU/h; Zenn 2026-07 = 1.15 CU/h; Fastero 2026-11 = ~1.1-1.2 CU/h. Na conta gratuita (sem unidades) e 0."
     },
-    {
-      "id": "a100-80g/qwen38-fn-iq3s",
-      "gpu": "a100-80g-hm",
-      "model": "qwen38-fn-iq3s",
-      "status": "verified",
-      "eta_min": 25,
-      "env": {
-        "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
-        "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 0,
-        "TIER_M_CTX": 0,
-        "LLAMA_KV_TYPE": "q8_0",
-        "LLAMA_SPEC_KV_TYPE": "q8_0",
-        "LLAMA_MTP_DRAFT": 0,
-        "LLAMA_MTP_DRAFT_L": 0,
-        "LLAMA_STREAM_VRAM": 0,
-        "LLAMA_LOAD_MODE": "mmap",
-        "LLAMA_LAZY_MODE": "on",
-        "LLAMA_SPEC_TYPE": "none",
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
-        "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
-        "ASSIGN_RETRIES": 8,
-        "ASSIGN_RETRY_DELAY": 15
-      },
-      "facts": {
-        "weights": {
-          "v": 77.88,
-          "unit": "GiB",
-          "measured": true,
-          "src": "IQ3_S shards 1 + 2 on Hugging Face: 54,817,524,224 + 28,800,138,432 B = 77.88 GiB."
-        },
-        "resident": {
-          "v": 51.05,
-          "unit": "GiB",
-          "measured": true,
-          "src": "Shard 1 only (54,817,524,224 B). The GGUF README: 'Only the first shard holds transformer weights and needs to be resident'; shard 2 is the per_layer_token_embd n-gram table, kept lazy on disk. A100-80G run 2026-11-19: nvidia-smi 57,794 MiB used of 81,920 MiB, so the 28.8 GB n-gram shard is not in VRAM."
-        },
-        "vram_mib": {
-          "v": 57794,
-          "measured": true,
-          "src": "nvidia-smi after load on A100-SXM4-80GB, 2026-11-19: 57,794 MiB used of 81,920 MiB."
-        },
-        "context": {
-          "v": 262144,
-          "measured": true,
-          "src": "/slots on the A100-80G, 2026-11-19: n_ctx = 262,144 (model native max)."
-        },
-        "kv_cache": {
-          "v": "q8_0, adaptive tiers off, spec-type none",
-          "measured": true,
-          "src": "KVarN4 on this qwen4exp hybrid hit 'GGML_ASSERT(n_embd_gqa == k->ne[0])' in llama-kv-cache.cpp; q8_0 loads and serves. The model has no MTP head, so the S/M adaptive tiers (which require draft-mtp) are disabled; the draft cache type stays ordinary q8_0."
-        },
-        "decode_tps": {
-          "v": 54.9,
-          "measured": true,
-          "src": "A100-80G, 2026-11-19: 43 completion tokens in 765.24 ms (54.9 tok/s), temperature 0, 56-token prompt."
-        },
-        "prefill_tps": {
-          "v": 44.4,
-          "measured": true,
-          "src": "A100-80G, 2026-11-19: 56 prompt tokens in 1,261 ms (44.4 tok/s). Short-prompt number, includes startup overhead; not a long-context prefill benchmark."
-        },
-        "startup": {
-          "v": "~10 min first load, ~12 s after the hash cache",
-          "measured": true,
-          "src": "2026-11-19: the first load hashed the 54.8 GB and 28.8 GB shards (identity-sha256 sidecars, 18:36-18:42+); after the sidecars were written, the next serve.sh reached health 200 in 12 s."
-        }
-      }
-    },
-    {
-      "id": "a100-80g/qwen38-fn",
-      "gpu": "a100-80g-hm",
-      "model": "qwen38-fn",
-      "status": "verified",
-      "eta_min": 11,
-      "env": {
-        "LLAMA_EXL3_DIR": 1,
-        "LLAMA_STREAM_VRAM": 1,
-        "LLAMA_FILE": "",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 0,
-        "TIER_M_CTX": 0,
-        "LLAMA_BATCH": 4096,
-        "LLAMA_UBATCH": 2048,
-        "LLAMA_KV_TYPE": "f16",
-        "LLAMA_SPEC_KV_TYPE": "q8_0",
-        "LLAMA_SPEC_TYPE": "draft-mtp",
-        "LLAMA_MTP_DRAFT": 4,
-        "LLAMA_MTP_DRAFT_L": 4,
-        "LLAMA_MTP_P_MIN": 0,
-        "LLAMA_LOAD_MODE": "none",
-        "LLAMA_LAZY_MODE": "auto",
-        "BEELLAMA_ZIP": "beellama-a100-exl3-cuda.zip",
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-exl3-20261120/beellama-a100-exl3-cuda.zip",
-        "ASSIGN_RETRIES": 8,
-        "ASSIGN_RETRY_DELAY": 15,
-        "LLAMA_ALIASES": "qwen3.8-flash-next-exl3",
-        "LLAMA_CTX_CHECKPOINTS": 16,
-        "COLLABOSM_INITIAL_WAIT_S": 60
-      },
-      "facts": {
-        "weights": {
-          "v": 100.1,
-          "unit": "GiB",
-          "measured": true,
-          "src": "107,463,600,896 B at branch 4.05bpw_h6_ng6 (Hugging Face tree): the 4.05 bpw weights with the 36.36 GiB n-gram table (host RAM, -ngr) and the 6-bit vision tower (561 MB)"
-        },
-        "prefill_tps": {
-          "v": 3882,
-          "measured": true,
-          "src": "gcs sweep at 8192, docs/MEASURED.md (2,806 at gcs 2048)"
-        },
-        "decode_tps": {
-          "v": 97.4,
-          "measured": true,
-          "src": "MTP ndt 4 at a 30K context, docs/MEASURED.md"
-        },
-        "load_s": {
-          "v": 259.5,
-          "measured": true,
-          "src": "serve.sh at cache 500224, docs/MEASURED.md"
-        },
-        "eta_min": {
-          "v": 11,
-          "measured": true,
-          "src": "download 280 s + load 259.5 s + install, docs/MEASURED.md"
-        },
-        "vram_mib": {
-          "v": 76437,
-          "measured": true,
-          "src": "after load at cache 500224, gcs 4096, vision off; with gcs 8192 and the tower together: not measured"
-        },
-        "context": {
-          "v": 500224,
-          "measured": false,
-          "src": "the KV fits (measured); positions past the native 262,144 come from YaRN x2 (rope_parameters + max_position_embeddings 524288, which is how exllamav3 derives the factor); quality there not measured"
-        },
-        "vision": {
-          "v": true,
-          "measured": false,
-          "src": "the pack carries vision_k6.safetensors (561 MB); its weights sit in pinned host RAM (EXL3_VISION_PINNED) so the tower costs no VRAM for weights; image encoding speed not measured"
-        },
-        "concurrency": {
-          "v": 1,
-          "measured": true,
-          "src": "one job per engine step (CONCURRENCY 1); how many live jobs would fit is computed in docs/CONCURRENCY.md, never exercised"
-        },
-        "host_ram": {
-          "v": "ngr 36.4 + ccs 32 + rcs 24 GiB",
-          "measured": false,
-          "src": "the verified run used -ccs 16 -rcs 16"
-        }
-      }
-    },
-    {
-      "id": "a100-40g/qwen38-fn-strata",
-      "gpu": "a100-40g",
-      "model": "qwen38-fn-strata",
-      "status": "verified",
-      "eta_min": 40,
-      "env": {
-        "STRATA_CONTEXT": 262144,
-        "STRATA_KV": "int8"
-      },
-      "facts": {
-        "weights": {
-          "v": 77.9,
-          "unit": "GiB",
-          "measured": true,
-          "src": "83.6 GB on Hugging Face: two IQ3_S shards (3.50 bpw on average; GSQ-RCO picks each tensor's type, the experts mixing Q2_0 and IQ4_NL by layer) with the 28.8 GB n-gram table; ISTA-DASLab, Apache-2.0. Their benchmarks put it level with BF16 (AIME25, GPQA-Diamond, LiveCodeBench v6: 93.26 vs 93.12)"
-        },
-        "engine_version": {
-          "v": "0.1.41",
-          "measured": true,
-          "src": "2026-10-10 A100-SXM4-40GB trial: official source commit fb58e0dbc8399662c0e47c76578c6e878b14f6cf; CUDA 13 source build with driver 580.82.07; engine SHA-256 81c5e113c48292a723d2cb4ff2613d7be4a79ee559f32292cd6ff07670e10271 (see docs/MEASURED.md). Existing GGUF revision 2a55d75962e22f7a4a1d9963ab6eae3678537831 was reused; engine-only update."
-        },
-        "prefill_tps": {
-          "v": 1320.9,
-          "unit": "tokens/s",
-          "measured": true,
-          "src": "Strata 0.1.41 latest041-v2 on A100-SXM4-40GB, one request per text slice: 12,878 input tokens 1,320.9 t/s; 26,816 1,492.8 and 26,451 1,591.8; 52,323 1,951.0 and 56,363 2,332.8; 110,921 2,515.8 and 110,072 2,566.9. First 12,160-token sample at 2,438.5 was excluded from headline due overlap with aborted run. KV prompt-cache count was zero; Strata row/expert cache state was not controlled. These are observed samples, not an average or n=3; no matched same-box 0.1.24 comparison."
-        },
-        "decode_tps": {
-          "v": 87.6,
-          "unit": "tokens/s",
-          "measured": true,
-          "src": "Strata 0.1.41 A100-SXM4-40GB, two 512-token output probes: 87.6 t/s after 2,900 input tokens and 93.0 t/s after 21,672 input tokens. One sample per context. Historical 0.1.24 short-context 58.8 t/s was from a different run/VM, not a paired speed comparison."
-        },
-        "eta_min": {
-          "v": 40,
-          "unit": "min",
-          "measured": false,
-          "src": "Conservative UI estimate. The source-build trial reached READY about 29 minutes after A100 assignment; source compilation, downloads, and Colab scheduling vary."
-        },
-        "vram_mib": {
-          "v": 40163,
-          "measured": true,
-          "src": "2026-10-09 trial (docs/MEASURED.md): nvidia-smi reported NVIDIA A100-SXM4-40GB, 40,163 MiB in use, 40,960 MiB total; point-in-time reading during the v0.1.41 run."
-        },
-        "context": {
-          "v": 262144,
-          "measured": true,
-          "src": "v0.1.41 runtime config sets --max-context 262144; benchmark prompts reached 110,921 actual input tokens, so the full configured window was not stress-tested."
-        },
-        "vision": {
-          "v": true,
-          "measured": true,
-          "src": "v0.1.41 trial (docs/MEASURED.md) passed an end-to-end 256x128 red-left/blue-right image fixture: response identified Left Red / Right Blue with no contradictory answer. This validates that simple fixture only, not the earlier 640x400/general image benchmark."
-        },
-        "responses_api": {
-          "v": true,
-          "measured": true,
-          "src": "v0.1.41 smoke validated non-streaming /responses completion and strict streamed PONG response; response-ID continuation/stateful operations were not tested."
-        },
-        "concurrency": {
-          "v": "not measured",
-          "measured": false,
-          "src": "Trial validated single-request API paths only; no concurrent-load test was run."
-        },
-        "host_ram": {
-          "v": "57,458 MiB used; 28,018 MiB available",
-          "measured": true,
-          "src": "2026-10-09 trial (docs/MEASURED.md) free -m snapshot: 85,477 MiB total, 57,458 MiB used, 28,018 MiB available; includes OS cache/accounting, not engine-only RSS."
-        },
-        "tools_api": {
-          "v": true,
-          "measured": true,
-          "src": "v0.1.41 extra-smoke-v2 validated a function tool probe and full function-call roundtrip (report_answer returned exact text 42)."
-        }
-      }
-    },
-    {
-      "id": "a100-80g-hm/glm53-flash-maya-l",
-      "gpu": "a100-80g-hm",
-      "model": "glm53-flash-maya-l",
-      "status": "unmeasured",
-      "eta_min": 110,
-      "env": {},
-      "why": {
-        "en": "Pinned Project Maya and Maya-L were measured directly; the CollabOSM launch/tunnel path is built but has not had a paid end-to-end run. Chat-only, text-only; no Responses API.",
-        "zh": "\u56fa\u5b9a\u7248\u672c Project Maya \u4e0e Maya-L \u5df2\u76f4\u63a5\u5b9e\u6d4b\uff1bCollabOSM \u542f\u52a8\u548c\u96a7\u9053\u6d41\u7a0b\u5df2\u63a5\u5165\uff0c\u4f46\u5c1a\u672a\u4ed8\u8d39\u7aef\u5230\u7aef\u590d\u6d4b\u3002\u4ec5\u652f\u6301\u6587\u672c\u804a\u5929\uff0c\u4e0d\u652f\u6301 Responses API\u3002"
-      },
-      "facts": {
-        "weights": {
-          "v": 145.6,
-          "unit": "GiB",
-          "measured": true,
-          "src": "Four Maya-L GGUF shards totalled 156.319 GB decimal (145.6 GiB); HF main resolved to revision f16ee4ba50d8fd2bb726ea1862ca6ca14ba188da before the 2026-10-10 trial download, whose files passed upstream SHA-256 checks."
-        },
-        "engine_version": {
-          "v": "1.0.30",
-          "measured": true,
-          "src": "Project Maya release v1.0.30, source commit c189f7ac8114ca039e9643314d1fead014fc6ff5; trial on 2026-10-10."
-        },
-        "prefill_tps": {
-          "v": 1084.1,
-          "unit": "tokens/s",
-          "measured": true,
-          "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, one 11,515-token text prompt; prompt cache was zero. Observed sample, not a median; not a measurement of 128K."
-        },
-        "decode_tps": {
-          "v": 16.2,
-          "unit": "tokens/s",
-          "measured": true,
-          "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, 256-token text generation. Observed sample, not a median; not a measurement of 128K."
-        },
-        "vram_mib": {
-          "v": 81169,
-          "measured": true,
-          "src": "Historical 32K configuration, default 700 MiB reserve: nvidia-smi point-in-time reading immediately after the 11,515-in/256-out text sample on A100-SXM4-80GB; 81,920 MiB total, 2026-10-10; not a measurement of 128K."
-        },
-        "eta_min": {
-          "v": 110,
-          "unit": "min",
-          "measured": false,
-          "src": "Conservative UI estimate for first setup through first model load. Trial took 76.8 min for setup/download/build plus about 8 min for initial load (~85 min total); Colab scheduling and transfer/build vary."
-        },
-        "context": {
-          "v": 131072,
-          "measured": false,
-          "src": "Requested recipe context; Maya-L model native cap is 1,048,576 tokens. The 128K configuration has not been run or quality-tested."
-        },
-        "benchmark_context": {
-          "v": 32768,
-          "measured": true,
-          "src": "Original 32K configuration used for the 2026-10-10 speed and VRAM measurements; these historical measurements are not measurements of the 128K configuration."
-        },
-        "expert_reserve_mib": {
-          "v": 2048,
-          "measured": false,
-          "src": "Requested STRATA_GLM_RESERVE_MB setting increases non-expert VRAM reserve from the upstream default 700 MiB, reducing the automatically sized expert cache; effect at 128K is untested."
-        },
-        "vision": {
-          "v": false,
-          "measured": true,
-          "src": "Trial used text-only mode (`--no-vision`); image inputs are unsupported by this recipe."
-        },
-        "responses_api": {
-          "v": false,
-          "measured": true,
-          "src": "Pinned Project Maya v1.0.30 `serve/server.py` route inspection: chat completions are exposed; no `/v1/responses` route is implemented."
-        },
-        "quantization": {
-          "v": "IQ3_S gate/up; IQ4_XS down; Q5_K sensitive tensors; Q6 attention",
-          "measured": true,
-          "src": "Four-shard Maya-L quant layout used in the 2026-10-10 trial; Maya-S and Maya-M are not substitutes for this measured profile."
-        },
-        "host_ram": {
-          "v": 167.1,
-          "unit": "GiB",
-          "measured": true,
-          "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10."
-        }
-      }
-    },
-    {
-      "id": "t4-free/swift-qwen38-iq3s",
-      "gpu": "t4-free",
-      "model": "swift-qwen38-iq3s",
-      "status": "verified",
-      "eta_min": 8,
-      "env": {
-        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
-        "LLAMA_CONTEXT": 200704,
-        "BEELLAMA_ZIP_URL": "https://huggingface.co/hjotha/beellama-t4-cuda/resolve/main/beellama-t4-cuda.zip",
-        "ASSIGN_RETRIES": 6,
-        "ASSIGN_RETRY_DELAY": 10
-      },
-      "facts": {
-        "weights": {
-          "v": 10.58,
-          "unit": "GiB",
-          "measured": true,
-          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
-        },
-        "context": {
-          "v": 200704,
-          "measured": true,
-          "src": "Measured on Colab Tesla T4 (14,913 MiB effective VRAM) with 2-tier KVarN4 (S=150,528 N=2 p_min=0.65 2048/256; L=200,704 N=0 2048/256): 126-130 MiB free VRAM."
-        },
-        "vram_mib": {
-          "v": 14787,
-          "measured": true,
-          "src": "nvidia-smi peak on Tesla T4 across S (150,528) and L (200,704) transitions, 2026-11-16."
-        },
-        "prefill_tps": {
-          "v": 34,
-          "measured": true,
-          "src": "beellama llama-server on Colab Tesla T4 (49 prompt tokens, 1423.1 ms = 34.43 tok/s), 2026-11-16."
-        },
-        "decode_tps": {
-          "v": 18.0,
-          "measured": true,
-          "src": "beellama llama-server on Colab Tesla T4 (25 tokens w/ MTP 16/16 accepted, 1332.3 ms = 18.01 tok/s), 2026-11-16."
-        },
-        "eta_min": {
-          "v": 2,
-          "measured": true,
-          "src": "Direct HF->VRAM streaming (--hf-stream-vram, 16 threads) on Colab Tesla T4 (60s-75s typical), 2026-11-16."
-        }
-      }
-    },
-    {
-      "id": "t4-free/sensenova-loop-9b",
-      "gpu": "t4-free",
-      "model": "sensenova-loop-9b",
-      "status": "verified",
-      "eta_min": 5,
-      "env": {
-        "LLAMA_FILE": "SenseNova-Loop-9B-Q4_K_M.gguf",
-        "LLAMA_CONTEXT": 524288,
-        "TIER_S_CTX": 65536,
-        "TIER_M_CTX": 65536,
-        "LLAMA_STREAM_VRAM": 0,
-        "BEELLAMA_ZIP": "beellama-t4-cuda-sensenova.zip",
-        "LLAMA_ALIASES": "sensenova-loop-9b",
-        "ASSIGN_RETRIES": 6,
-        "ASSIGN_RETRY_DELAY": 10
-      },
-      "facts": {
-        "weights": {
-          "v": 5.42,
-          "unit": "GiB",
-          "measured": true,
-          "src": "SenseNova-Loop-9B-Q4_K_M.gguf on Hugging Face (5,818,631,072 B = 5.42 GiB)."
-        },
-        "context": {
-          "v": 524288,
-          "measured": true,
-          "src": "Measured on Colab Tesla T4 (15,360 MiB) with KVarN4 KV: a 2,017-token request forced the 524,288-token L tier, the request returned 200 and nvidia-smi read 13,737 MiB. Tiers S/M are 65,536 so the S cache does not compete with the L handoff."
-        },
-        "vram_mib": {
-          "v": 13737,
-          "measured": true,
-          "src": "nvidia-smi after the 524,288-token L tier was allocated on Colab Tesla T4, 2026-11-19."
-        },
-        "prefill_tps": {
-          "v": 17.4,
-          "measured": true,
-          "src": "beellama llama-server on Colab Tesla T4 (26 prompt tokens, 1495.6 ms = 17.38 tok/s), 2026-11-19."
-        },
-        "decode_tps": {
-          "v": 5.7,
-          "measured": true,
-          "src": "beellama llama-server on Colab Tesla T4 (28 tokens with MTP, 16/17 drafts accepted, 4761.9 ms = 5.67 tok/s), 2026-11-19."
-        },
-        "eta_min": {
-          "v": 2,
-          "measured": true,
-          "src": "HF range download to /content (5.4 GiB, ~44 s) plus server start on Colab Tesla T4, 2026-11-19. Direct HF->VRAM streaming is disabled for this GGUF because its tokenizer metadata exceeds the 8 MiB stream header probe."
-        }
-      }
-    },
-    {
-      "id": "a100-80g/swift-qwen38-iq3s",
-      "gpu": "a100-80g-hm",
-      "model": "swift-qwen38-iq3s",
-      "status": "verified",
-      "eta_min": 4,
-      "env": {
-        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 196608,
-        "TIER_M_CTX": 229376,
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
-        "ASSIGN_RETRIES": 3,
-        "ASSIGN_RETRY_DELAY": 5
-      },
-      "facts": {
-        "weights": {
-          "v": 10.58,
-          "unit": "GiB",
-          "measured": true,
-          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
-        },
-        "context": {
-          "v": 262144,
-          "measured": true,
-          "src": "Validated on a Colab A100-SXM4-80GB High-RAM (79.3 GiB VRAM, 167.1 GiB RAM), 2026-11-17: /props n_ctx=262,144; a 234,366-token prompt completed at 428.16 tok/s prefill and 20.36 tok/s decode (KVarN4 tiers S=196,608 / M=229,376 / L=262,144)."
-        },
-        "vram_mib": {
-          "v": 16264,
-          "measured": true,
-          "src": "nvidia-smi after the 234k-token run on the A100-80G: 16,264 MiB used of 81,920 MiB (idle after the turn); 15,890 MiB right after load."
-        },
-        "prefill_tps": {
-          "v": 428.16,
-          "measured": true,
-          "src": "A100-80G, 234,366-token cold prompt, 547.38 s (428.16 tok/s); a 3,484-token prompt measured 534.47 tok/s."
-        },
-        "decode_tps": {
-          "v": 20.36,
-          "measured": true,
-          "src": "A100-80G, 64 tokens at 234k context (20.36 tok/s); 43.87 tok/s at 3.5k context. MTP draft acceptance 81-88%."
-        },
-        "eta_min": {
-          "v": 4,
-          "measured": true,
-          "src": "End-to-end on 2026-11-17: assignment/toolkit upload ~50 s, zip extract + HF->VRAM stream + server ready ~2 min 45 s."
-        }
-      }
-    },
-    {
-      "id": "a100-40g/swift-qwen38-iq3s",
-      "gpu": "a100-40g",
-      "model": "swift-qwen38-iq3s",
-      "status": "unmeasured",
-      "eta_min": 8,
-      "env": {
-        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 196608,
-        "TIER_M_CTX": 229376,
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
-        "ASSIGN_RETRIES": 3,
-        "ASSIGN_RETRY_DELAY": 5
-      },
-      "facts": {
-        "weights": {
-          "v": 10.58,
-          "unit": "GiB",
-          "measured": true,
-          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
-        },
-        "context": {
-          "v": 262144,
-          "measured": false,
-          "src": "Same launch path and A100 sm_80 zip as a100-80g/swift-qwen38-iq3s, where 262,144 was validated on the 80 GB shape; not measured on the 39 GiB standard shape."
-        }
-      }
-    },
-    {
-      "id": "g4/qwen38-fn-iq3s",
-      "gpu": "g4",
-      "model": "qwen38-fn-iq3s",
-      "status": "unmeasured",
-      "eta_min": 25,
-      "env": {
-        "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
-        "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 0,
-        "TIER_M_CTX": 0,
-        "LLAMA_KV_TYPE": "q8_0",
-        "LLAMA_SPEC_KV_TYPE": "q8_0",
-        "LLAMA_MTP_DRAFT": 0,
-        "LLAMA_MTP_DRAFT_L": 0,
-        "LLAMA_STREAM_VRAM": 0,
-        "LLAMA_LOAD_MODE": "mmap",
-        "LLAMA_LAZY_MODE": "on",
-        "LLAMA_SPEC_TYPE": "none",
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-g4-8454da237/beellama-g4-cuda.zip",
-        "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
-        "ASSIGN_RETRIES": 3,
-        "ASSIGN_RETRY_DELAY": 5
-      },
-      "facts": {
-        "weights": {
-          "v": 77.88,
-          "unit": "GiB",
-          "measured": true,
-          "src": "IQ3_S shards 1 + 2 on Hugging Face: 54,817,524,224 + 28,800,138,432 B = 77.88 GiB."
-        },
-        "resident": {
-          "v": 51.05,
-          "unit": "GiB",
-          "measured": false,
-          "src": "Shard 1 only (54,817,524,224 B). The GGUF README: 'Only the first shard holds transformer weights and needs to be resident'; shard 2 is the per_layer_token_embd n-gram table, kept lazy on disk (lazy-mode on). Validated on the A100-80G on 2026-11-19: 57,794 MiB used, so the 28.8 GB n-gram shard is not in VRAM. Not measured on G4 (assignment capacity)."
-        },
-        "kv_cache": {
-          "v": "q8_0, adaptive tiers off, spec-type none",
-          "measured": false,
-          "src": "Same launch config validated on the A100-80G on 2026-11-19; not measured on G4. KVarN4 hit a KV shape assert on this qwen4exp hybrid, so the recipe uses q8_0; the model has no MTP head, so the adaptive tiers are off and spec-type is none."
-        },
-        "context": {
-          "v": 262144,
-          "measured": false,
-          "src": "Model native context (config.json max_position_embeddings 262,144). The same 262,144 loaded on the A100-80G (/slots n_ctx = 262,144, 2026-11-19). G4 not measured: on the Pro account the G4 request is accepted (no entitlement error) but Colab answered Service Unavailable on repeated assignment attempts (2026-11-19); the free account rejects the accelerator outright."
-        }
-      }
-    },
-    {
-      "id": "g4/swift-qwen38-iq3s",
-      "gpu": "g4",
-      "model": "swift-qwen38-iq3s",
-      "status": "unmeasured",
-      "eta_min": 4,
-      "env": {
-        "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
-        "LLAMA_CONTEXT": 262144,
-        "TIER_S_CTX": 196608,
-        "TIER_M_CTX": 229376,
-        "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-g4-8454da237/beellama-g4-cuda.zip",
-        "ASSIGN_RETRIES": 3,
-        "ASSIGN_RETRY_DELAY": 5
-      },
-      "facts": {
-        "weights": {
-          "v": 10.58,
-          "unit": "GiB",
-          "measured": true,
-          "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
-        },
-        "context": {
-          "v": 262144,
-          "measured": false,
-          "src": "Pending G4 validation: same model, tier split and 262,144 target as a100-80g/swift-qwen38-iq3s, with a native sm_120a build. Colab returned Service Unavailable for G4 on 2026-11-18; binary compatibility was checked separately (sm_120a, glibc 2.38, GCC 13 / Ubuntu 24.04)."
-        }
-      }
+    "high_mem": {
+     "v": "50 GiB RAM \u00b7 16 GB VRAM",
+     "measured": true,
+     "src": "2026-11-20 Colab T4 high-RAM test: free -h 50Gi total, nvidia-smi Tesla T4 15,360 MiB, 8 vCPU; colab sessions reported Shape: High-RAM."
     }
-  ]
+   }
+  },
+  {
+   "id": "g4",
+   "card": "G4 \u00b7 Blackwell",
+   "accelerator": "G4",
+   "shape": "st",
+   "vram_gb": 96,
+   "ram_gb": 176,
+   "min_vram_gib": 90,
+   "cu_per_hour": 8.9,
+   "facts": {
+    "cu_per_hour": {
+     "v": 8.9,
+     "measured": false,
+     "src": "Tarifa G4 observada por terceiros em 2026-10-20; confirmar com `colab usage` na conta."
+    },
+    "vram": {
+     "v": 95.6,
+     "unit": "GiB",
+     "measured": false,
+     "src": "Colab G4: NVIDIA RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (95.6 GiB) reportados em teste p\u00fablico de 2026-10-20."
+    },
+    "ram": {
+     "v": 176,
+     "unit": "GiB",
+     "measured": false,
+     "src": "Colab G4 standard shape: 176 GB de RAM no mesmo teste p\u00fablico."
+    },
+    "high_mem": {
+     "v": "not offered",
+     "measured": true,
+     "src": "2026-11-20: colab new --gpu G4 --high-mem -> Backend rejected accelerator 'G4'; the same account without --high-mem got Service Unavailable (capacity). Do not expose a G4 high-RAM option."
+    }
+   }
+  }
+ ],
+ "models": [
+  {
+   "id": "qwen38-fn",
+   "name": "Qwen3.8-Flash-Next",
+   "short": "EXL3 4-bit",
+   "params": "125B-A6B MoE",
+   "quant": "EXL3 4.05 bpw",
+   "repo": "turboderp/Qwen3.8-Flash-Next-exl3",
+   "branch": "4.05bpw_h6_ng6",
+   "revision": "55a732e0c4c3d4614bc42b68493bb930d9b02c0a",
+   "dir": "/content/collabosm-llama/model-qwen38-fn-exl3",
+   "served_id": "qwen3.8-flash-next-exl3",
+   "bytes": 107463600896,
+   "native_ctx": 262144,
+   "vision": true,
+   "mtp": true,
+   "ngram": true,
+   "recurrent": true,
+   "engine": "llama"
+  },
+  {
+   "id": "qwen38-27b",
+   "name": "Qwen3.8-27B",
+   "short": "EXL3 4-bit",
+   "params": "27B dense, hybrid DeltaNet",
+   "quant": "EXL3 4.00 bpw, self-calibrated (head 5, vision 6 bits)",
+   "repo": "turboderp/Qwen3.8-27B-exl3",
+   "branch": "SC_4.00bpw_H5_V6",
+   "revision": "516bf129059031c6da9416768ea6b7a1be00a8fc",
+   "dir": "/content/collabosm-llama/model-qwen38-27b-exl3",
+   "served_id": "qwen3.8-27b-exl3",
+   "bytes": 16384243706,
+   "native_ctx": 262144,
+   "vision": true,
+   "mtp": true,
+   "ngram": false,
+   "recurrent": true,
+   "engine": "llama"
+  },
+  {
+   "id": "qwen38-fn-strata",
+   "name": "Qwen3.8-Flash-Next",
+   "short": "Strata 3.5-bit",
+   "params": "125B-A6B MoE",
+   "quant": "GGUF IQ3_S, 3.50 bpw (ISTA-DASLab GSQ-RCO), on Strata",
+   "engine": "strata",
+   "repo": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+   "branch": "main",
+   "revision": "2a55d75962e22f7a4a1d9963ab6eae3678537831",
+   "dir": "/content/strata-data",
+   "served_id": "qwen3.8-flash-next-iq3_s",
+   "bytes": 83600000000,
+   "native_ctx": 262144,
+   "vision": true,
+   "mtp": true,
+   "ngram": true,
+   "recurrent": true,
+   "strata": {
+    "repo": "https://github.com/Niko1221/Strata",
+    "commit": "fb58e0dbc8399662c0e47c76578c6e878b14f6cf",
+    "build": true,
+    "cuda": "auto",
+    "quant": "IQ3_S",
+    "dir": "/content/strata-v0.1.41"
+   }
+  },
+  {
+   "id": "glm53-flash-maya-l",
+   "name": "GLM-5.3-Flash",
+   "short": "Maya-L GGUF",
+   "params": "321B MoE",
+   "quant": "Maya-L routed GGUF; IQ3_S gate/up, IQ4_XS down, Q5_K sensitive, Q6 attention",
+   "engine": "maya",
+   "repo": "peasantsmith/GLM-5.3-Flash-Maya-GGUF",
+   "branch": "Maya-L",
+   "revision": "f16ee4ba50d8fd2bb726ea1862ca6ca14ba188da",
+   "dir": "/content/Maya-data/models",
+   "served_id": "glm-5.3-flash",
+   "native_ctx": 1048576,
+   "vision": false,
+   "mtp": false,
+   "ngram": false,
+   "recurrent": false,
+   "maya": {
+    "repo": "https://github.com/mw00/project-maya.git",
+    "commit": "c189f7ac8114ca039e9643314d1fead014fc6ff5",
+    "model": "Maya-L",
+    "data_dir": "/content/Maya-data",
+    "model_dir": "/content/Maya-data/models",
+    "min_disk_gib": 180,
+    "min_vram_gib": 70,
+    "gpu": 0,
+    "vision": false,
+    "context": 131072,
+    "reserve_mb": 2048
+   }
+  },
+  {
+   "id": "qwen38-fn-iq3s",
+   "name": "Qwen3.8-Flash-Next",
+   "short": "GGUF IQ3_S",
+   "params": "125B-A6B MoE",
+   "quant": "GGUF IQ3_S, 3.50 bpw (ISTA-DASLab GSQ-RCO)",
+   "engine": "llama",
+   "repo": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+   "revision": "2a55d75962e22f7a4a1d9963ab6eae3678537831",
+   "dir": "/content/collabosm-llama/model-qwen38fn",
+   "served_id": "qwen3.8-flash-next-iq3_s",
+   "native_ctx": 262144,
+   "vision": false,
+   "mtp": false,
+   "ngram": true,
+   "recurrent": true,
+   "bytes": 83617662656
+  },
+  {
+   "id": "swift-qwen38-iq3s",
+   "name": "Swift Qwen3.8-27B",
+   "short": "GGUF IQ3_S MTP",
+   "params": "27B",
+   "quant": "GGUF IQ3_S MTP",
+   "engine": "llama",
+   "repo": "ukisai/Swift-1.5-Qwen3.8-27B-GSQ-RCO-GGUF",
+   "revision": "d74895bbe5db4bec1e0024e7cc87d59c02d7631a",
+   "dir": "/content/collabosm-llama/model",
+   "served_id": "swift-qwen38-27b-iq3s",
+   "native_ctx": 262144,
+   "vision": false,
+   "mtp": true,
+   "bytes": 11361609472
+  },
+  {
+   "id": "sensenova-loop-9b",
+   "name": "SenseNova Loop 9B",
+   "short": "GGUF Q4_K_M MTP",
+   "params": "9B (14.6B eq.)",
+   "quant": "GGUF Q4_K_M MTP",
+   "engine": "llama",
+   "repo": "sensenova/SenseNova-Loop-9B-GGUF",
+   "revision": "11c121055062d33647348cf236a8c543138b282e",
+   "dir": "/content/collabosm-llama/model-sensenova",
+   "served_id": "sensenova-loop-9b",
+   "native_ctx": 524288,
+   "vision": false,
+   "mtp": true,
+   "bytes": 5818631072
+  },
+  {
+   "id": "qwen38-fn-q2_0",
+   "name": "Qwen3.8-Flash-Next",
+   "short": "GGUF Q2_0",
+   "params": "125B-A6B MoE",
+   "quant": "GGUF Q2_0, 2.40 bpw (ISTA-DASLab GSQ-RCO)",
+   "engine": "llama",
+   "repo": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+   "revision": "2a55d75962e22f7a4a1d9963ab6eae3678537831",
+   "dir": "/content/collabosm-llama/model-qwen38fn-q20",
+   "served_id": "qwen3.8-flash-next-q2_0",
+   "native_ctx": 262144,
+   "vision": false,
+   "mtp": false,
+   "ngram": true,
+   "recurrent": true,
+   "bytes": 66423878624
+  }
+ ],
+ "recipes": [
+  {
+   "id": "a100-40g/qwen38-27b",
+   "gpu": "a100-40g",
+   "model": "qwen38-27b",
+   "status": "verified",
+   "eta_min": 6,
+   "env": {
+    "LLAMA_EXL3_DIR": 1,
+    "LLAMA_STREAM_VRAM": 1,
+    "LLAMA_FILE": "",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_BATCH": 4096,
+    "LLAMA_UBATCH": 2048,
+    "LLAMA_KV_TYPE": "q4_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_TYPE": "draft-mtp",
+    "LLAMA_MTP_DRAFT": 4,
+    "LLAMA_MTP_DRAFT_L": 4,
+    "LLAMA_MTP_P_MIN": 0,
+    "LLAMA_LOAD_MODE": "none",
+    "LLAMA_LAZY_MODE": "auto",
+    "BEELLAMA_ZIP": "beellama-a100-exl3-cuda.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-exl3-20261120/beellama-a100-exl3-cuda.zip",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15,
+    "LLAMA_ALIASES": "qwen3.8-27b-exl3,qwen-3.8-27b,Qwen3.8-27B",
+    "LLAMA_CTX_CHECKPOINTS": 16,
+    "COLLABOSM_INITIAL_WAIT_S": 20
+   },
+   "facts": {
+    "weights": {
+     "v": 15.26,
+     "unit": "GiB",
+     "measured": true,
+     "src": "16,384,243,706 B at branch SC_4.00bpw_H5_V6 (Hugging Face tree), embeddings, 6-bit vision tower and 4-bit MTP layer included; the pack's own plot puts this quant at KL 0.0062 vs ~0.015 for the plain 3.50 bpw it replaces"
+    },
+    "vram_mib": {
+     "v": 33500,
+     "measured": false,
+     "src": "derived: 17.1 GiB measured outside the KV on 2026-09-27 (26,746 MiB in all with Q8 KV at 262K) + Q4 KV for 819,200 tokens at 19,584 B each (16 attention layers + the MTP layer) = 14.9 GiB + the second recurrent state slot for two-way decode, 728 MiB (48 GDN layers x 48 heads x 128 x 128 fp32 x 5 for ndt 4, plus conv state); not yet loaded this way"
+    },
+    "prefill_tps": {
+     "v": 2544,
+     "measured": true,
+     "src": "32,551-token cold prompt, second of a pair, on the A100-40G 2026-09-27 with Q8 KV (4K: 2,935; 119K: 1,435)"
+    },
+    "decode_tps": {
+     "v": 50.4,
+     "measured": true,
+     "src": "512 tokens at 32K context, MTP ndt 4, on the A100-40G 2026-09-27 with Q8 KV (short context: 62.9; ~128K: ~44); Q4 reads half the KV per token, so long contexts should come out a little faster"
+    },
+    "eta_min": {
+     "v": 6,
+     "measured": true,
+     "src": "billing to READY in 5 min 51 s on 2026-09-27, 43.6 s of it a warm-up since cut to ~8K tokens"
+    },
+    "context": {
+     "v": 409600,
+     "measured": false,
+     "src": "per conversation: YaRN 1.5625 over the native 262,144 (the model card documents YaRN up to 1M); the 819,200-token cache holds two such conversations, decoding together; quality past 262K not measured"
+    },
+    "vision": {
+     "v": true,
+     "measured": false,
+     "src": "the tower is quantized to 6 bits inside the shards (needs ExLlamaV3 >= 1.4.4; 1.5.1 here); never loaded"
+    },
+    "concurrency": {
+     "v": 2,
+     "measured": false,
+     "src": "two jobs per engine step: -ambs 2 gives the second recurrent state slot, and api_server's one conductor thread drives the Generator for both; 2 x 409,600 positions fit the 819,200-token cache; a third request waits its turn; not yet run on this card"
+    },
+    "host_ram": {
+     "v": "ccs 16 + rcs 16 GiB",
+     "measured": false,
+     "src": "36.7 of 83.5 GiB in use on 2026-09-27; rcs is 16, not 8: a GDN checkpoint here is ~150 MB (48 layers x 48 heads x 128 x 128 fp32), one every ~2048 tokens, so an 86K-token Codex prompt leaves ~42 of them (~6 GB)"
+    }
+   }
+  },
+  {
+   "id": "a100-80g/qwen38-fn-iq3s",
+   "gpu": "a100-80g-hm",
+   "model": "qwen38-fn-iq3s",
+   "status": "verified",
+   "eta_min": 25,
+   "env": {
+    "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+    "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_MTP_DRAFT": 0,
+    "LLAMA_MTP_DRAFT_L": 0,
+    "LLAMA_STREAM_VRAM": 0,
+    "LLAMA_LOAD_MODE": "mmap",
+    "LLAMA_LAZY_MODE": "on",
+    "LLAMA_SPEC_TYPE": "none",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+    "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15
+   },
+   "facts": {
+    "weights": {
+     "v": 77.88,
+     "unit": "GiB",
+     "measured": true,
+     "src": "IQ3_S shards 1 + 2 on Hugging Face: 54,817,524,224 + 28,800,138,432 B = 77.88 GiB."
+    },
+    "resident": {
+     "v": 51.05,
+     "unit": "GiB",
+     "measured": true,
+     "src": "Shard 1 only (54,817,524,224 B). The GGUF README: 'Only the first shard holds transformer weights and needs to be resident'; shard 2 is the per_layer_token_embd n-gram table, kept lazy on disk. A100-80G run 2026-11-19: nvidia-smi 57,794 MiB used of 81,920 MiB, so the 28.8 GB n-gram shard is not in VRAM."
+    },
+    "vram_mib": {
+     "v": 57794,
+     "measured": true,
+     "src": "nvidia-smi after load on A100-SXM4-80GB, 2026-11-19: 57,794 MiB used of 81,920 MiB."
+    },
+    "context": {
+     "v": 262144,
+     "measured": true,
+     "src": "/slots on the A100-80G, 2026-11-19: n_ctx = 262,144 (model native max)."
+    },
+    "kv_cache": {
+     "v": "q8_0, adaptive tiers off, spec-type none",
+     "measured": true,
+     "src": "KVarN4 on this qwen4exp hybrid hit 'GGML_ASSERT(n_embd_gqa == k->ne[0])' in llama-kv-cache.cpp; q8_0 loads and serves. The model has no MTP head, so the S/M adaptive tiers (which require draft-mtp) are disabled; the draft cache type stays ordinary q8_0."
+    },
+    "decode_tps": {
+     "v": 54.9,
+     "measured": true,
+     "src": "A100-80G, 2026-11-19: 43 completion tokens in 765.24 ms (54.9 tok/s), temperature 0, 56-token prompt."
+    },
+    "prefill_tps": {
+     "v": 44.4,
+     "measured": true,
+     "src": "A100-80G, 2026-11-19: 56 prompt tokens in 1,261 ms (44.4 tok/s). Short-prompt number, includes startup overhead; not a long-context prefill benchmark."
+    },
+    "startup": {
+     "v": "~10 min first load, ~12 s after the hash cache",
+     "measured": true,
+     "src": "2026-11-19: the first load hashed the 54.8 GB and 28.8 GB shards (identity-sha256 sidecars, 18:36-18:42+); after the sidecars were written, the next serve.sh reached health 200 in 12 s."
+    }
+   }
+  },
+  {
+   "id": "a100-80g/qwen38-fn",
+   "gpu": "a100-80g-hm",
+   "model": "qwen38-fn",
+   "status": "verified",
+   "eta_min": 11,
+   "env": {
+    "LLAMA_EXL3_DIR": 1,
+    "LLAMA_STREAM_VRAM": 1,
+    "LLAMA_FILE": "",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_BATCH": 4096,
+    "LLAMA_UBATCH": 2048,
+    "LLAMA_KV_TYPE": "f16",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_TYPE": "draft-mtp",
+    "LLAMA_MTP_DRAFT": 4,
+    "LLAMA_MTP_DRAFT_L": 4,
+    "LLAMA_MTP_P_MIN": 0,
+    "LLAMA_LOAD_MODE": "none",
+    "LLAMA_LAZY_MODE": "auto",
+    "BEELLAMA_ZIP": "beellama-a100-exl3-cuda.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-exl3-20261120/beellama-a100-exl3-cuda.zip",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15,
+    "LLAMA_ALIASES": "qwen3.8-flash-next-exl3",
+    "LLAMA_CTX_CHECKPOINTS": 16,
+    "COLLABOSM_INITIAL_WAIT_S": 300,
+    "COLLABOSM_POLL_S": 15
+   },
+   "facts": {
+    "weights": {
+     "v": 100.1,
+     "unit": "GiB",
+     "measured": true,
+     "src": "107,463,600,896 B at branch 4.05bpw_h6_ng6 (Hugging Face tree): the 4.05 bpw weights with the 36.36 GiB n-gram table (host RAM, -ngr) and the 6-bit vision tower (561 MB)"
+    },
+    "prefill_tps": {
+     "v": 3882,
+     "measured": true,
+     "src": "gcs sweep at 8192, docs/MEASURED.md (2,806 at gcs 2048)"
+    },
+    "decode_tps": {
+     "v": 97.4,
+     "measured": true,
+     "src": "MTP ndt 4 at a 30K context, docs/MEASURED.md"
+    },
+    "load_s": {
+     "v": 259.5,
+     "measured": true,
+     "src": "serve.sh at cache 500224, docs/MEASURED.md"
+    },
+    "eta_min": {
+     "v": 11,
+     "measured": true,
+     "src": "download 280 s + load 259.5 s + install, docs/MEASURED.md"
+    },
+    "vram_mib": {
+     "v": 76437,
+     "measured": true,
+     "src": "after load at cache 500224, gcs 4096, vision off; with gcs 8192 and the tower together: not measured"
+    },
+    "context": {
+     "v": 500224,
+     "measured": false,
+     "src": "the KV fits (measured); positions past the native 262,144 come from YaRN x2 (rope_parameters + max_position_embeddings 524288, which is how exllamav3 derives the factor); quality there not measured"
+    },
+    "vision": {
+     "v": true,
+     "measured": false,
+     "src": "the pack carries vision_k6.safetensors (561 MB); its weights sit in pinned host RAM (EXL3_VISION_PINNED) so the tower costs no VRAM for weights; image encoding speed not measured"
+    },
+    "concurrency": {
+     "v": 1,
+     "measured": true,
+     "src": "one job per engine step (CONCURRENCY 1); how many live jobs would fit is computed in docs/CONCURRENCY.md, never exercised"
+    },
+    "host_ram": {
+     "v": "ngr 36.4 + ccs 32 + rcs 24 GiB",
+     "measured": false,
+     "src": "the verified run used -ccs 16 -rcs 16"
+    }
+   }
+  },
+  {
+   "id": "a100-40g/qwen38-fn-strata",
+   "gpu": "a100-40g",
+   "model": "qwen38-fn-strata",
+   "status": "verified",
+   "eta_min": 40,
+   "env": {
+    "STRATA_CONTEXT": 262144,
+    "STRATA_KV": "int8"
+   },
+   "facts": {
+    "weights": {
+     "v": 77.9,
+     "unit": "GiB",
+     "measured": true,
+     "src": "83.6 GB on Hugging Face: two IQ3_S shards (3.50 bpw on average; GSQ-RCO picks each tensor's type, the experts mixing Q2_0 and IQ4_NL by layer) with the 28.8 GB n-gram table; ISTA-DASLab, Apache-2.0. Their benchmarks put it level with BF16 (AIME25, GPQA-Diamond, LiveCodeBench v6: 93.26 vs 93.12)"
+    },
+    "engine_version": {
+     "v": "0.1.41",
+     "measured": true,
+     "src": "2026-10-10 A100-SXM4-40GB trial: official source commit fb58e0dbc8399662c0e47c76578c6e878b14f6cf; CUDA 13 source build with driver 580.82.07; engine SHA-256 81c5e113c48292a723d2cb4ff2613d7be4a79ee559f32292cd6ff07670e10271 (see docs/MEASURED.md). Existing GGUF revision 2a55d75962e22f7a4a1d9963ab6eae3678537831 was reused; engine-only update."
+    },
+    "prefill_tps": {
+     "v": 1320.9,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "Strata 0.1.41 latest041-v2 on A100-SXM4-40GB, one request per text slice: 12,878 input tokens 1,320.9 t/s; 26,816 1,492.8 and 26,451 1,591.8; 52,323 1,951.0 and 56,363 2,332.8; 110,921 2,515.8 and 110,072 2,566.9. First 12,160-token sample at 2,438.5 was excluded from headline due overlap with aborted run. KV prompt-cache count was zero; Strata row/expert cache state was not controlled. These are observed samples, not an average or n=3; no matched same-box 0.1.24 comparison."
+    },
+    "decode_tps": {
+     "v": 87.6,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "Strata 0.1.41 A100-SXM4-40GB, two 512-token output probes: 87.6 t/s after 2,900 input tokens and 93.0 t/s after 21,672 input tokens. One sample per context. Historical 0.1.24 short-context 58.8 t/s was from a different run/VM, not a paired speed comparison."
+    },
+    "eta_min": {
+     "v": 40,
+     "unit": "min",
+     "measured": false,
+     "src": "Conservative UI estimate. The source-build trial reached READY about 29 minutes after A100 assignment; source compilation, downloads, and Colab scheduling vary."
+    },
+    "vram_mib": {
+     "v": 40163,
+     "measured": true,
+     "src": "2026-10-09 trial (docs/MEASURED.md): nvidia-smi reported NVIDIA A100-SXM4-40GB, 40,163 MiB in use, 40,960 MiB total; point-in-time reading during the v0.1.41 run."
+    },
+    "context": {
+     "v": 262144,
+     "measured": true,
+     "src": "v0.1.41 runtime config sets --max-context 262144; benchmark prompts reached 110,921 actual input tokens, so the full configured window was not stress-tested."
+    },
+    "vision": {
+     "v": true,
+     "measured": true,
+     "src": "v0.1.41 trial (docs/MEASURED.md) passed an end-to-end 256x128 red-left/blue-right image fixture: response identified Left Red / Right Blue with no contradictory answer. This validates that simple fixture only, not the earlier 640x400/general image benchmark."
+    },
+    "responses_api": {
+     "v": true,
+     "measured": true,
+     "src": "v0.1.41 smoke validated non-streaming /responses completion and strict streamed PONG response; response-ID continuation/stateful operations were not tested."
+    },
+    "concurrency": {
+     "v": "not measured",
+     "measured": false,
+     "src": "Trial validated single-request API paths only; no concurrent-load test was run."
+    },
+    "host_ram": {
+     "v": "57,458 MiB used; 28,018 MiB available",
+     "measured": true,
+     "src": "2026-10-09 trial (docs/MEASURED.md) free -m snapshot: 85,477 MiB total, 57,458 MiB used, 28,018 MiB available; includes OS cache/accounting, not engine-only RSS."
+    },
+    "tools_api": {
+     "v": true,
+     "measured": true,
+     "src": "v0.1.41 extra-smoke-v2 validated a function tool probe and full function-call roundtrip (report_answer returned exact text 42)."
+    }
+   }
+  },
+  {
+   "id": "a100-80g-hm/glm53-flash-maya-l",
+   "gpu": "a100-80g-hm",
+   "model": "glm53-flash-maya-l",
+   "status": "unmeasured",
+   "eta_min": 110,
+   "env": {},
+   "why": {
+    "en": "Pinned Project Maya and Maya-L were measured directly; the CollabOSM launch/tunnel path is built but has not had a paid end-to-end run. Chat-only, text-only; no Responses API.",
+    "zh": "\u56fa\u5b9a\u7248\u672c Project Maya \u4e0e Maya-L \u5df2\u76f4\u63a5\u5b9e\u6d4b\uff1bCollabOSM \u542f\u52a8\u548c\u96a7\u9053\u6d41\u7a0b\u5df2\u63a5\u5165\uff0c\u4f46\u5c1a\u672a\u4ed8\u8d39\u7aef\u5230\u7aef\u590d\u6d4b\u3002\u4ec5\u652f\u6301\u6587\u672c\u804a\u5929\uff0c\u4e0d\u652f\u6301 Responses API\u3002"
+   },
+   "facts": {
+    "weights": {
+     "v": 145.6,
+     "unit": "GiB",
+     "measured": true,
+     "src": "Four Maya-L GGUF shards totalled 156.319 GB decimal (145.6 GiB); HF main resolved to revision f16ee4ba50d8fd2bb726ea1862ca6ca14ba188da before the 2026-10-10 trial download, whose files passed upstream SHA-256 checks."
+    },
+    "engine_version": {
+     "v": "1.0.30",
+     "measured": true,
+     "src": "Project Maya release v1.0.30, source commit c189f7ac8114ca039e9643314d1fead014fc6ff5; trial on 2026-10-10."
+    },
+    "prefill_tps": {
+     "v": 1084.1,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, one 11,515-token text prompt; prompt cache was zero. Observed sample, not a median; not a measurement of 128K."
+    },
+    "decode_tps": {
+     "v": 16.2,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "Historical 32K configuration, default 700 MiB reserve: A100-SXM4-80GB High-RAM, 256-token text generation. Observed sample, not a median; not a measurement of 128K."
+    },
+    "vram_mib": {
+     "v": 81169,
+     "measured": true,
+     "src": "Historical 32K configuration, default 700 MiB reserve: nvidia-smi point-in-time reading immediately after the 11,515-in/256-out text sample on A100-SXM4-80GB; 81,920 MiB total, 2026-10-10; not a measurement of 128K."
+    },
+    "eta_min": {
+     "v": 110,
+     "unit": "min",
+     "measured": false,
+     "src": "Conservative UI estimate for first setup through first model load. Trial took 76.8 min for setup/download/build plus about 8 min for initial load (~85 min total); Colab scheduling and transfer/build vary."
+    },
+    "context": {
+     "v": 131072,
+     "measured": false,
+     "src": "Requested recipe context; Maya-L model native cap is 1,048,576 tokens. The 128K configuration has not been run or quality-tested."
+    },
+    "benchmark_context": {
+     "v": 32768,
+     "measured": true,
+     "src": "Original 32K configuration used for the 2026-10-10 speed and VRAM measurements; these historical measurements are not measurements of the 128K configuration."
+    },
+    "expert_reserve_mib": {
+     "v": 2048,
+     "measured": false,
+     "src": "Requested STRATA_GLM_RESERVE_MB setting increases non-expert VRAM reserve from the upstream default 700 MiB, reducing the automatically sized expert cache; effect at 128K is untested."
+    },
+    "vision": {
+     "v": false,
+     "measured": true,
+     "src": "Trial used text-only mode (`--no-vision`); image inputs are unsupported by this recipe."
+    },
+    "responses_api": {
+     "v": false,
+     "measured": true,
+     "src": "Pinned Project Maya v1.0.30 `serve/server.py` route inspection: chat completions are exposed; no `/v1/responses` route is implemented."
+    },
+    "quantization": {
+     "v": "IQ3_S gate/up; IQ4_XS down; Q5_K sensitive tensors; Q6 attention",
+     "measured": true,
+     "src": "Four-shard Maya-L quant layout used in the 2026-10-10 trial; Maya-S and Maya-M are not substitutes for this measured profile."
+    },
+    "host_ram": {
+     "v": 167.1,
+     "unit": "GiB",
+     "measured": true,
+     "src": "A100-SXM4-80GB High-RAM assignment probe, 2026-10-10."
+    }
+   }
+  },
+  {
+   "id": "t4-free/swift-qwen38-iq3s",
+   "gpu": "t4-free",
+   "model": "swift-qwen38-iq3s",
+   "status": "verified",
+   "eta_min": 8,
+   "env": {
+    "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "LLAMA_CONTEXT": 200704,
+    "BEELLAMA_ZIP_URL": "https://huggingface.co/hjotha/beellama-t4-cuda/resolve/main/beellama-t4-cuda.zip",
+    "ASSIGN_RETRIES": 6,
+    "ASSIGN_RETRY_DELAY": 10
+   },
+   "facts": {
+    "weights": {
+     "v": 10.58,
+     "unit": "GiB",
+     "measured": true,
+     "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+    },
+    "context": {
+     "v": 200704,
+     "measured": true,
+     "src": "Measured on Colab Tesla T4 (14,913 MiB effective VRAM) with 2-tier KVarN4 (S=150,528 N=2 p_min=0.65 2048/256; L=200,704 N=0 2048/256): 126-130 MiB free VRAM."
+    },
+    "vram_mib": {
+     "v": 14787,
+     "measured": true,
+     "src": "nvidia-smi peak on Tesla T4 across S (150,528) and L (200,704) transitions, 2026-11-16."
+    },
+    "prefill_tps": {
+     "v": 34,
+     "measured": true,
+     "src": "beellama llama-server on Colab Tesla T4 (49 prompt tokens, 1423.1 ms = 34.43 tok/s), 2026-11-16."
+    },
+    "decode_tps": {
+     "v": 18.0,
+     "measured": true,
+     "src": "beellama llama-server on Colab Tesla T4 (25 tokens w/ MTP 16/16 accepted, 1332.3 ms = 18.01 tok/s), 2026-11-16."
+    },
+    "eta_min": {
+     "v": 2,
+     "measured": true,
+     "src": "Direct HF->VRAM streaming (--hf-stream-vram, 16 threads) on Colab Tesla T4 (60s-75s typical), 2026-11-16."
+    }
+   }
+  },
+  {
+   "id": "t4-free/sensenova-loop-9b",
+   "gpu": "t4-free",
+   "model": "sensenova-loop-9b",
+   "status": "verified",
+   "eta_min": 5,
+   "env": {
+    "LLAMA_FILE": "SenseNova-Loop-9B-Q4_K_M.gguf",
+    "LLAMA_CONTEXT": 524288,
+    "TIER_S_CTX": 65536,
+    "TIER_M_CTX": 65536,
+    "LLAMA_STREAM_VRAM": 0,
+    "BEELLAMA_ZIP": "beellama-t4-cuda-sensenova.zip",
+    "LLAMA_ALIASES": "sensenova-loop-9b",
+    "ASSIGN_RETRIES": 6,
+    "ASSIGN_RETRY_DELAY": 10
+   },
+   "facts": {
+    "weights": {
+     "v": 5.42,
+     "unit": "GiB",
+     "measured": true,
+     "src": "SenseNova-Loop-9B-Q4_K_M.gguf on Hugging Face (5,818,631,072 B = 5.42 GiB)."
+    },
+    "context": {
+     "v": 524288,
+     "measured": true,
+     "src": "Measured on Colab Tesla T4 (15,360 MiB) with KVarN4 KV: a 2,017-token request forced the 524,288-token L tier, the request returned 200 and nvidia-smi read 13,737 MiB. Tiers S/M are 65,536 so the S cache does not compete with the L handoff."
+    },
+    "vram_mib": {
+     "v": 13737,
+     "measured": true,
+     "src": "nvidia-smi after the 524,288-token L tier was allocated on Colab Tesla T4, 2026-11-19."
+    },
+    "prefill_tps": {
+     "v": 17.4,
+     "measured": true,
+     "src": "beellama llama-server on Colab Tesla T4 (26 prompt tokens, 1495.6 ms = 17.38 tok/s), 2026-11-19."
+    },
+    "decode_tps": {
+     "v": 5.7,
+     "measured": true,
+     "src": "beellama llama-server on Colab Tesla T4 (28 tokens with MTP, 16/17 drafts accepted, 4761.9 ms = 5.67 tok/s), 2026-11-19."
+    },
+    "eta_min": {
+     "v": 2,
+     "measured": true,
+     "src": "HF range download to /content (5.4 GiB, ~44 s) plus server start on Colab Tesla T4, 2026-11-19. Direct HF->VRAM streaming is disabled for this GGUF because its tokenizer metadata exceeds the 8 MiB stream header probe."
+    }
+   }
+  },
+  {
+   "id": "a100-80g/swift-qwen38-iq3s",
+   "gpu": "a100-80g-hm",
+   "model": "swift-qwen38-iq3s",
+   "status": "verified",
+   "eta_min": 4,
+   "env": {
+    "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 196608,
+    "TIER_M_CTX": 229376,
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+    "ASSIGN_RETRIES": 3,
+    "ASSIGN_RETRY_DELAY": 5
+   },
+   "facts": {
+    "weights": {
+     "v": 10.58,
+     "unit": "GiB",
+     "measured": true,
+     "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+    },
+    "context": {
+     "v": 262144,
+     "measured": true,
+     "src": "Validated on a Colab A100-SXM4-80GB High-RAM (79.3 GiB VRAM, 167.1 GiB RAM), 2026-11-17: /props n_ctx=262,144; a 234,366-token prompt completed at 428.16 tok/s prefill and 20.36 tok/s decode (KVarN4 tiers S=196,608 / M=229,376 / L=262,144)."
+    },
+    "vram_mib": {
+     "v": 16264,
+     "measured": true,
+     "src": "nvidia-smi after the 234k-token run on the A100-80G: 16,264 MiB used of 81,920 MiB (idle after the turn); 15,890 MiB right after load."
+    },
+    "prefill_tps": {
+     "v": 428.16,
+     "measured": true,
+     "src": "A100-80G, 234,366-token cold prompt, 547.38 s (428.16 tok/s); a 3,484-token prompt measured 534.47 tok/s."
+    },
+    "decode_tps": {
+     "v": 20.36,
+     "measured": true,
+     "src": "A100-80G, 64 tokens at 234k context (20.36 tok/s); 43.87 tok/s at 3.5k context. MTP draft acceptance 81-88%."
+    },
+    "eta_min": {
+     "v": 4,
+     "measured": true,
+     "src": "End-to-end on 2026-11-17: assignment/toolkit upload ~50 s, zip extract + HF->VRAM stream + server ready ~2 min 45 s."
+    }
+   }
+  },
+  {
+   "id": "a100-40g/swift-qwen38-iq3s",
+   "gpu": "a100-40g",
+   "model": "swift-qwen38-iq3s",
+   "status": "unmeasured",
+   "eta_min": 8,
+   "env": {
+    "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 196608,
+    "TIER_M_CTX": 229376,
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+    "ASSIGN_RETRIES": 3,
+    "ASSIGN_RETRY_DELAY": 5
+   },
+   "facts": {
+    "weights": {
+     "v": 10.58,
+     "unit": "GiB",
+     "measured": true,
+     "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+    },
+    "context": {
+     "v": 262144,
+     "measured": false,
+     "src": "Same launch path and A100 sm_80 zip as a100-80g/swift-qwen38-iq3s, where 262,144 was validated on the 80 GB shape; not measured on the 39 GiB standard shape."
+    }
+   }
+  },
+  {
+   "id": "g4/qwen38-fn-iq3s",
+   "gpu": "g4",
+   "model": "qwen38-fn-iq3s",
+   "status": "unmeasured",
+   "eta_min": 25,
+   "env": {
+    "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+    "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_MTP_DRAFT": 0,
+    "LLAMA_MTP_DRAFT_L": 0,
+    "LLAMA_STREAM_VRAM": 0,
+    "LLAMA_LOAD_MODE": "mmap",
+    "LLAMA_LAZY_MODE": "on",
+    "LLAMA_SPEC_TYPE": "none",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-g4-8454da237/beellama-g4-cuda.zip",
+    "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
+    "ASSIGN_RETRIES": 3,
+    "ASSIGN_RETRY_DELAY": 5
+   },
+   "facts": {
+    "weights": {
+     "v": 77.88,
+     "unit": "GiB",
+     "measured": true,
+     "src": "IQ3_S shards 1 + 2 on Hugging Face: 54,817,524,224 + 28,800,138,432 B = 77.88 GiB."
+    },
+    "resident": {
+     "v": 51.05,
+     "unit": "GiB",
+     "measured": false,
+     "src": "Shard 1 only (54,817,524,224 B). The GGUF README: 'Only the first shard holds transformer weights and needs to be resident'; shard 2 is the per_layer_token_embd n-gram table, kept lazy on disk (lazy-mode on). Validated on the A100-80G on 2026-11-19: 57,794 MiB used, so the 28.8 GB n-gram shard is not in VRAM. Not measured on G4 (assignment capacity)."
+    },
+    "kv_cache": {
+     "v": "q8_0, adaptive tiers off, spec-type none",
+     "measured": false,
+     "src": "Same launch config validated on the A100-80G on 2026-11-19; not measured on G4. KVarN4 hit a KV shape assert on this qwen4exp hybrid, so the recipe uses q8_0; the model has no MTP head, so the adaptive tiers are off and spec-type is none."
+    },
+    "context": {
+     "v": 262144,
+     "measured": false,
+     "src": "Model native context (config.json max_position_embeddings 262,144). The same 262,144 loaded on the A100-80G (/slots n_ctx = 262,144, 2026-11-19). G4 not measured: on the Pro account the G4 request is accepted (no entitlement error) but Colab answered Service Unavailable on repeated assignment attempts (2026-11-19); the free account rejects the accelerator outright."
+    }
+   }
+  },
+  {
+   "id": "g4/swift-qwen38-iq3s",
+   "gpu": "g4",
+   "model": "swift-qwen38-iq3s",
+   "status": "unmeasured",
+   "eta_min": 4,
+   "env": {
+    "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 196608,
+    "TIER_M_CTX": 229376,
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-g4-8454da237/beellama-g4-cuda.zip",
+    "ASSIGN_RETRIES": 3,
+    "ASSIGN_RETRY_DELAY": 5
+   },
+   "facts": {
+    "weights": {
+     "v": 10.58,
+     "unit": "GiB",
+     "measured": true,
+     "src": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf on Hugging Face (11,361,609,472 B = 10.58 GiB)."
+    },
+    "context": {
+     "v": 262144,
+     "measured": false,
+     "src": "Pending G4 validation: same model, tier split and 262,144 target as a100-80g/swift-qwen38-iq3s, with a native sm_120a build. Colab returned Service Unavailable for G4 on 2026-11-18; binary compatibility was checked separately (sm_120a, glibc 2.38, GCC 13 / Ubuntu 24.04)."
+    }
+   }
+  },
+  {
+   "id": "a100-40g/qwen38-fn-iq3s-beellama",
+   "gpu": "a100-40g",
+   "model": "qwen38-fn-iq3s",
+   "status": "unmeasured",
+   "eta_min": 25,
+   "env": {
+    "LLAMA_FILE": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+    "LLAMA_EXTRA_FILES": "IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf",
+    "LLAMA_CONTEXT": 16384,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_MTP_DRAFT": 0,
+    "LLAMA_MTP_DRAFT_L": 0,
+    "LLAMA_STREAM_VRAM": 0,
+    "LLAMA_LOAD_MODE": "mmap",
+    "LLAMA_LAZY_MODE": "on",
+    "LLAMA_SPEC_TYPE": "none",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-moe-20261121/beellama-a100-moe.zip",
+    "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15,
+    "LLAMA_GPU_LAYERS": -1,
+    "LLAMA_FIT": "on",
+    "LLAMA_MOE_CACHE_MIB": 0,
+    "LLAMA_VRAM_RESERVE_MIB": 1536,
+    "LLAMA_CACHE_RAM": 1024,
+    "LLAMA_SLOT_SAVE_MAX_MB": 2048,
+    "LLAMA_BATCH": 1024,
+    "LLAMA_UBATCH": 256,
+    "COLLABOSM_INITIAL_WAIT_S": 60,
+    "FALLBACK_ACCELERATORS": ""
+   }
+  },
+  {
+   "id": "a100-40g/qwen38-fn-q20-beellama",
+   "gpu": "a100-40g",
+   "model": "qwen38-fn-q2_0",
+   "status": "unmeasured",
+   "eta_min": 20,
+   "env": {
+    "LLAMA_FILE": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+    "LLAMA_EXTRA_FILES": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+    "LLAMA_CONTEXT": 8192,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_MTP_DRAFT": 0,
+    "LLAMA_MTP_DRAFT_L": 0,
+    "LLAMA_STREAM_VRAM": 0,
+    "LLAMA_LOAD_MODE": "mmap",
+    "LLAMA_LAZY_MODE": "on",
+    "LLAMA_SPEC_TYPE": "none",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-moe-20261121/beellama-a100-moe.zip",
+    "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15,
+    "LLAMA_GPU_LAYERS": -1,
+    "LLAMA_FIT": "on",
+    "LLAMA_MOE_CACHE_MIB": 0,
+    "LLAMA_VRAM_RESERVE_MIB": 1536,
+    "LLAMA_CACHE_RAM": 1024,
+    "LLAMA_SLOT_SAVE_MAX_MB": 2048,
+    "LLAMA_BATCH": 512,
+    "LLAMA_UBATCH": 128,
+    "COLLABOSM_INITIAL_WAIT_S": 60,
+    "LLAMA_FIT_TARGET": 4096,
+    "FALLBACK_ACCELERATORS": ""
+   }
+  },
+  {
+   "id": "a100-40g/qwen38-fn-q20-ncmoe-beellama",
+   "gpu": "a100-40g",
+   "model": "qwen38-fn-q2_0",
+   "status": "unmeasured",
+   "eta_min": 20,
+   "env": {
+    "LLAMA_FILE": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+    "LLAMA_EXTRA_FILES": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+    "LLAMA_CONTEXT": 8192,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_MTP_DRAFT": 0,
+    "LLAMA_MTP_DRAFT_L": 0,
+    "LLAMA_STREAM_VRAM": 0,
+    "LLAMA_LOAD_MODE": "mmap",
+    "LLAMA_LAZY_MODE": "on",
+    "LLAMA_SPEC_TYPE": "none",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-moe-20261121/beellama-a100-moe.zip",
+    "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15,
+    "LLAMA_GPU_LAYERS": 99,
+    "LLAMA_FIT": "off",
+    "LLAMA_MOE_CACHE_MIB": 0,
+    "LLAMA_VRAM_RESERVE_MIB": 1536,
+    "LLAMA_CACHE_RAM": 1024,
+    "LLAMA_SLOT_SAVE_MAX_MB": 2048,
+    "LLAMA_BATCH": 512,
+    "LLAMA_UBATCH": 128,
+    "COLLABOSM_INITIAL_WAIT_S": 60,
+    "LLAMA_FIT_TARGET": 4096,
+    "LLAMA_N_CPU_MOE": 8,
+    "FALLBACK_ACCELERATORS": ""
+   }
+  }
+ ]
 }

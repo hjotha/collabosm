@@ -309,8 +309,8 @@ def cmd_up(a) -> int:
     except ValueError:
         initial_wait_s = round(weights_gib * 5.0)
     if initial_wait_s > 0:
-        _rc, _out = colab(["exec", "-s", session, "--timeout", "10", "-f",
-                           os.path.join(HERE, "status.py")], timeout=15)
+        _rc, _out = colab(["exec", "-s", session, "--timeout", "30", "-f",
+                           os.path.join(HERE, "status.py")], timeout=45)
         if ("model_cached:   True" not in _out and "health:         200" not in _out
                 and not re.search(r"^stage: *stage=(?:ready|ready_no_tunnel|serve_failed|serve_timeout)\b", _out, re.M)):
             say("model not available on VM yet (~%.1f GiB); waiting %.0fs before %.0fs polling"
@@ -318,8 +318,8 @@ def cmd_up(a) -> int:
             time.sleep(initial_wait_s)
     deadline = time.time() + wait_min * 60
     while time.time() < deadline:
-        rc, out = colab(["exec", "-s", session, "--timeout", "10", "-f",
-                         os.path.join(HERE, "status.py")], timeout=15)
+        rc, out = colab(["exec", "-s", session, "--timeout", "30", "-f",
+                         os.path.join(HERE, "status.py")], timeout=45)
         indented(out)
         m = re.search(r"^stage: *stage=([a-z_]*)", out, re.M)
         stage = m.group(1) if m else ""
@@ -350,8 +350,8 @@ def cmd_up(a) -> int:
                 return 0
             say("!! the API is healthy on the VM but no tunnel URL was published - see /content/tunnel.log")
             return 9
-        rc, out = colab(["exec", "-s", session, "--timeout", "10", "-f",
-                         os.path.join(HERE, "bootstrap_ok.py")], timeout=15)
+        rc, out = colab(["exec", "-s", session, "--timeout", "30", "-f",
+                         os.path.join(HERE, "bootstrap_ok.py")], timeout=45)
         if "bootstrap_failed" in out:
             # the log's last lines, here: a failed start is stopped right after this, and
             # its /content/bootstrap.log goes with the box
