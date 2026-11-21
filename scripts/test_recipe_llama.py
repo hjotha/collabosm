@@ -121,7 +121,7 @@ wait "$!"
         self.assertRegex(env["LLAMA_MTP_SHA256"], r"^[0-9a-f]{64}$")
         self.assertRegex(env["LLAMA_MTP_URL"], r"/resolve/[0-9a-f]{40}/MTP/")
         self.assertNotIn("/resolve/main/", env["LLAMA_MTP_URL"])
-        self.assertIn("collabosm-a100-clean-20261121", env["BEELLAMA_ZIP_URL"])
+        self.assertIn("collabosm-a100-parity5-20261121", env["BEELLAMA_ZIP_URL"])
         self.assertNotIn("parity2", env["BEELLAMA_ZIP_URL"])
 
     def test_exl3_dir_non_adaptive_flags(self):
