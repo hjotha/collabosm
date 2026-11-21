@@ -375,7 +375,7 @@ Box: A100 40 GB (40,960 MiB), 83 GiB host RAM, 236 GB disk.
     -ngl 99 --n-cpu-moe 2 --moe-cache-mib -1        # 2 layers' experts in RAM, the rest cached in VRAM
     -c 32768 --load-mode mmap --lazy-mode on       # the 28.8 GB n-gram table stays mmap'd
     -b 2048 -ub 512 -fa on                         # prefill throughput
-    KV q8_0
+    KV F16 (server default at measurement time; the recipe sets q8_0)
 
 `--moe-cache-mib -1` is the automatic size: it is resolved **after** the first
 `sched_reserve()`, so it uses the VRAM the compute buffers left, capped by the host expert
@@ -403,6 +403,11 @@ bytes (see `docs/PLAN-strata-parity.md`, P1/P2).
 | `-ncmoe 2`, cache auto, b512/ub128 | 36,994 MiB | 54.3 t/s | 513 t/s | 46.8 t/s |
 | `-ncmoe 2`, cache auto, b2048/ub512 | 37,094 MiB | 55.7 t/s | 1,159.6 t/s | 46.4 t/s |
 | `-ncmoe 2`, cache auto, b4096/ub1024 | 37,228 MiB | 52.8 t/s | 1,482.7 t/s | 33.2 t/s (4k) |
+
+
+> Correction (2026-11-21, later): the runs above used the server default **F16** KV cache.
+> The recipe sets LLAMA_KV_TYPE=q8_0; the q8_0 numbers are being re-measured on the same A100
+> before the recipe facts are updated.
 
 Reading: the automatic cache is worth +30% to +87% decode; the batch/ubatch raise is worth
 +126% prefill, at the cost of a slightly worse decode at 4k with ub 1024. The chosen
@@ -435,7 +440,7 @@ same prompts (short; 4,662-token code block; ~28.6k-token code block), greedy.
 
 Strata settings: `--max-context 32768 --kv int8`, `--expert-cache auto` (24,576 experts,
 31.64 GiB of VRAM), `--prefill auto`, DFlash2 drafter. beellama settings:
-`-ncmoe 2 --moe-cache-mib -1 -c 32768 -b 2048 -ub 512 -fa on`, KV q8_0, no spec decode.
+`-ncmoe 2 --moe-cache-mib -1 -c 32768 -b 2048 -ub 512 -fa on`, KV F16, no spec decode.
 
 What the numbers say:
 
