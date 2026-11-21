@@ -313,7 +313,7 @@
    "gpu": "a100-40g",
    "model": "qwen38-27b",
    "status": "verified",
-   "eta_min": 6,
+   "eta_min": 3,
    "env": {
     "LLAMA_EXL3_DIR": 1,
     "LLAMA_STREAM_VRAM": 1,
@@ -362,9 +362,9 @@
      "src": "2026-11-21: 512 tokens at 41,600-token context, MTP draft-4 (319/764 accepted), on A100-40G with beellama EXL3 (short 61p+512g: 67.49 t/s [337/690]; ~5k 5,030p+512g: 58.15 t/s [314/783])"
     },
     "eta_min": {
-     "v": 6,
+     "v": 3,
      "measured": true,
-     "src": "billing to READY in 5 min 51 s on 2026-09-27, 43.6 s of it a warm-up since cut to ~8K tokens"
+     "src": "2026-11-21: 2m41s from VM ready (11:14:31) to READY (11:17:12) on A100-40G via direct HF->VRAM streaming (104.3s llama-server load)"
     },
     "context": {
      "v": 409600,
@@ -492,7 +492,7 @@
     "ASSIGN_RETRY_DELAY": 15,
     "LLAMA_ALIASES": "qwen3.8-flash-next-exl3",
     "LLAMA_CTX_CHECKPOINTS": 16,
-    "COLLABOSM_INITIAL_WAIT_S": 300,
+    "COLLABOSM_INITIAL_WAIT_S": 210,
     "COLLABOSM_POLL_S": 15
    },
    "facts": {
