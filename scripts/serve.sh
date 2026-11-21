@@ -40,6 +40,7 @@ done
 pkill -f 'collabosm-llama/llama.*/llama-serve[r]' 2>/dev/null || true
 pkill -f 'api_serve[r].py' 2>/dev/null || true
 pkill -f 'serve/serve[r].py --engine strata' 2>/dev/null || true
+pkill -f '/content/collabosm-mashbo[x]/bin/mashbox run' 2>/dev/null || true
 pkill -f 'cloudflare[d]' 2>/dev/null || true
 sleep 2
 
@@ -48,6 +49,10 @@ if [ "${ENGINE:-exl3}" = "llama" ]; then
   . /content/llama.sh
   llama_start || { status "stage=serve_failed"; exit 1; }
   PROC="$LLAMA_PROC"
+elif [ "${ENGINE:-exl3}" = "mashbox" ]; then
+  . /content/mashbox.sh
+  mashbox_start
+  PROC='/content/collabosm-mashbox/bin/mashbox run'
 elif [ "${ENGINE:-exl3}" = "maya" ]; then
   . /content/maya.sh
   say "starting Maya for ${RECIPE:-no recipe} (${MAYA_MODEL:-Maya-L}, context ${MAYA_CONTEXT:-32768})"

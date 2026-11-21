@@ -139,7 +139,24 @@
      "src": "2026-11-20: colab new --gpu G4 --high-mem -> Backend rejected accelerator 'G4'; the same account without --high-mem got Service Unavailable (capacity). Do not expose a G4 high-RAM option."
     }
    }
+  },
+ {
+  "id": "tpu-v6e-1",
+  "card": "TPU v6e-1",
+  "accelerator": "V6E1",
+  "shape": "st",
+  "vram_gb": 32,
+  "min_vram_gib": 0,
+  "ram_gb": 173,
+  "cu_per_hour": 3.71,
+  "facts": {
+   "cu_per_hour": {
+    "v": 3.71,
+    "measured": false,
+    "src": "Public Colab High-RAM observation: https://www.gkbrk.com/google-colab"
+   }
   }
+ }
  ],
  "models": [
   {
@@ -305,7 +322,20 @@
    "ngram": true,
    "recurrent": true,
    "bytes": 66423878624
-  }
+  },
+ {
+  "id": "qwen38-27b-mashbox",
+  "name": "Qwen3.8-27B",
+  "short": "MASHBOX BQ8_R",
+  "params": "27B",
+  "quant": "BSHJ BQ8_R",
+  "engine": "mashbox",
+  "repo": "mashbox-labs/Qwen3.8-27B-TPU",
+  "revision": "98139d38b39dd1223c102ef008e6b0968a903aae",
+  "dir": "/content/mashbox-cache",
+  "served_id": "qwen3-8-27b",
+  "vision": false
+ }
  ],
  "recipes": [
   {
@@ -1148,6 +1178,32 @@
     "LLAMA_N_CPU_MOE": 2,
     "FALLBACK_ACCELERATORS": ""
    }
+  },
+ {
+  "id": "tpu-v6e-1/qwen38-27b-mashbox",
+  "gpu": "tpu-v6e-1",
+  "model": "qwen38-27b-mashbox",
+  "status": "unmeasured",
+  "eta_min": 15,
+  "env": {
+   "MASHBOX_VERSION": "0.1.15",
+   "MASHBOX_CONTEXT": 32768,
+   "CACHE_SIZE": 32768,
+   "CONCURRENCY": 1,
+   "WAIT_MIN": 25,
+   "COLLABOSM_READINESS_CONTENTS": 1
+  },
+  "why": {
+   "en": "Single-chip TPU recipe for text coding, with one 32K slot."
+  },
+  "facts": {
+   "weights": {
+    "v": 25.1,
+    "unit": "GiB",
+    "measured": false,
+    "src": "26.94 GB per MASHBOX model card"
+   }
   }
+ }
  ]
 }

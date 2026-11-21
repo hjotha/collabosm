@@ -63,6 +63,15 @@ class RestoreSafety(unittest.TestCase):
         create.assert_not_called()
         stop.assert_not_called()
 
+    def test_tpu_recipe_refuses_to_reuse_a_recorded_gpu(self):
+        vm = self.assignment("ours")
+        rc, register, create, stop = self.run_restore(
+            vm, [vm], ["--accelerator", "V6E1", "--no-verify"])
+        self.assertEqual(rc, 12)
+        register.assert_not_called()
+        create.assert_not_called()
+        stop.assert_not_called()
+
     def test_new_vm_is_stopped_when_too_small(self):
         rc, _, create, stop = self.run_restore(None, [], [])
         self.assertEqual(rc, 6)

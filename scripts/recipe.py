@@ -38,7 +38,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REGISTRY = os.environ.get("RECIPES_FILE") or os.path.join(HERE, os.pardir, "recipes.json")
 STATUSES = ("verified", "unmeasured", "placeholder")
 # what serves the model on the box: our ExLlamaV3 API, Strata, or Project Maya
-ENGINES = ("exl3", "strata", "maya", "llama")
+ENGINES = ("exl3", "strata", "maya", "llama", "mashbox")
 DEFAULT = "a100-40g/qwen38-27b"
 ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]*$")
 # What the VM keeps besides the recipe's own keys, when the caller sets them: they are

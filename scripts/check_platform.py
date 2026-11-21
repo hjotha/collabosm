@@ -31,6 +31,7 @@ import http.client
 import json
 import os
 import py_compile
+import runpy
 import shutil
 import socket
 import subprocess
@@ -39,6 +40,7 @@ import tempfile
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COLAB_CLI_VERSION = runpy.run_path(os.path.join(ROOT, "frontend", "colab_setup.py"))["PIN_VERSION"]
 PY = sys.executable
 RESULTS = []
 PROCS = []          # (process, its log file)
@@ -193,7 +195,7 @@ def step_app(env, tmp, install):
         check("installed in %.0f s, found signed out" % (time.time() - t0),
               stage == "signed_out", (colab or {}).get("error") or (colab or {}).get("log", [])[-5:])
         check("  natively (no WSL), version %s" % (colab or {}).get("version"),
-              (colab or {}).get("where") == "native" and (colab or {}).get("version") == "0.7.4",
+              (colab or {}).get("where") == "native" and (colab or {}).get("version") == COLAB_CLI_VERSION,
               colab)
         sub, exe = ("Scripts", "python.exe") if os.name == "nt" else ("bin", "python")
         venv_py = os.path.join(env["USERPROFILE" if os.name == "nt" else "HOME"],
