@@ -313,3 +313,48 @@ token from the live assignment on every call, and re-registers a record that is 
 
 The fitted VRAM line, the per-slot recurrent cost, the session table and the reasons the host-RAM
 tier cannot extend live capacity are in `docs/CONCURRENCY.md`.
+
+# beellama on the A100-40G: Qwen3.8-Flash-Next GGUF (2026-11-21)
+
+Goal: run Qwen3.8-Flash-Next (ISTA-DASLab GSQ-RCO GGUF) on the 40 GiB A100 with the
+user's beellama fork instead of the ExLlamaV3/Strata engines.
+
+Sizing that decides it (sizes from the HF tree at revision
+`2a55d75962e22f7a4a1d9963ab6eae3678537831`; only shard 1 has to be resident, shard 2 is
+the 28.8 GB n-gram table and can stay mmap'd):
+
+| Quant | shard 1 | shard 2 | total | task avg |
+|---|---:|---:|---:|---:|
+| Q2_0 | 37.6 GB | 28.8 GB | 66.4 GB | 89.07 |
+| IQ2_XS | 39.2 GB | 28.8 GB | 68.0 GB | 89.16 |
+| IQ3_XXS | 47.0 GB | 28.8 GB | 75.8 GB | ~91.0 |
+| IQ3_S | 54.8 GB | 28.8 GB | 83.6 GB | ~93.1 |
+
+The A100-40G box has 39 GiB of VRAM, ~83 GiB of host RAM and 236 GB of disk (measured
+2026-11-21), so every size fits on disk; Q2_0's shard 1 almost fits VRAM by itself.
+
+Recipes added (engine = beellama, `llama.sh`):
+
+| Recipe | placement | status |
+|---|---|---|
+| `a100-40g/qwen38-fn-q20-beellama` | `--fit on` (fit-target 4096 MiB), ctx 8192, b 512/ub 128, cache 0 | test 2026-11-21 |
+| `a100-40g/qwen38-fn-q20-ncmoe-beellama` | deterministic: `-ncmoe 8`, no fit | prepared |
+| `a100-40g/qwen38-fn-iq3s-beellama` | `--fit on`, IQ3_S | prepared |
+
+`llama.sh` now forwards `fit`, `fit-target`, `n-cpu-moe`, `moe-cache-mib` and
+`vram-reserve-mib` from the recipe environment. The `FALLBACK_ACCELERATORS` of these
+recipes is empty on purpose: a fallback would land on the A100 High-RAM 80 GB and the test
+would no longer be about the 40 GiB card.
+
+## Expert cache measurements (RTX 4070, OLMoE-1B-7B q2_k)
+
+- `--moe-cache-mib -1` sizes the cache after the compute buffers are reserved:
+  `MoE cache auto: 2224.00 MiB for 2224.00 MiB of host experts (100.0%)`, hit rate
+  51.8-68.8% on short ubatches.
+- `--moe-host-pinned` (default on) keeps host experts in `CUDA_Host`
+  (`cudaMallocHost`): 34.3/34.4/34.3 t/s vs 33.9/33.8/33.9 t/s for pageable memory
+  (+1.5%, three runs each).
+- Limit: the CUDA host buffer accepts 4 GiB per allocation, and the loader allocates all
+  host experts in one buffer. Above that (e.g. Flash-Next with ~17 GiB of host experts)
+  the allocation falls back to pageable memory; a chunked `cudaHostRegister` arena is the
+  next step.
