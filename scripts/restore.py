@@ -120,7 +120,7 @@ def register(state, SessionState, name, endpoint, token, url, accelerator, shape
              assignment=None):
     # with the token's expiry where the CLI keeps one (0.7): scripts/colab_record.py
     state.store.add(SessionState(name=name, token=token, url=url, endpoint=endpoint,
-                                 variant="GPU", accelerator=accelerator,
+                                 variant=_variant(accelerator).value, accelerator=accelerator,
                                  **(extra_fields(SessionState, assignment) if assignment else {})))
     try:
         state.history.log_event(name, "session_registered",
@@ -153,9 +153,9 @@ def maybe_keepalive(state, name, endpoint, want):
         print("[restore] could not start keep-alive: %r" % exc)
 
 
-def _variant():
+def _variant(accelerator):
     from colab_cli.commands.session import Variant
-    return Variant.GPU
+    return Variant.TPU if accelerator in {"V5E1", "V6E1"} else Variant.GPU
 
 
 def create_high_ram(state, SessionState, name, accelerator, shape_code):
@@ -190,7 +190,7 @@ def create_high_ram(state, SessionState, name, accelerator, shape_code):
 
     C.Client._build_assign_url = _build
     try:
-        res = state.client.assign(uuid.uuid4(), variant=_variant(), accelerator=accelerator)
+        res = state.client.assign(uuid.uuid4(), variant=_variant(accelerator.value), accelerator=accelerator)
     except TooManyAssignmentsError:
         raise SystemExit(3)
     except Exception as exc:
@@ -305,6 +305,9 @@ def main():
     # ---- 1. refresh our own registration, if the VM is still ours
     if mine and any(a.endpoint == mine.endpoint for a in live):
         a = next(a for a in live if a.endpoint == mine.endpoint)
+        if args.accelerator in {"V5E1", "V6E1"} and a.accelerator != args.accelerator:
+            print("[restore] existing session does not match the requested TPU")
+            return 12
         keep_alive(state.client, mine.endpoint)          # 0.6 only; 0.7 has no ping
         register(state, SessionState, args.name, a.endpoint, a.runtime_proxy_info.token,
                  a.runtime_proxy_info.url, args.accelerator, attached_shape(a), assignment=a)

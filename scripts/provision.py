@@ -53,7 +53,7 @@ import recipe as registry  # noqa: E402
 # above all -- the kit once shipped without it, and a fresh clone waited 50 paid
 # minutes for a /health that nothing could answer
 KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "maya.sh", "llama.sh",
-       "llama-defaults.env", "status.py", "probe_gpu.py")
+       "llama-defaults.env", "status.py", "probe_gpu.py", "mashbox.sh")
 
 # Runs on the VM. A re-attached box still has the last run's STATUS and endpoint.json:
 # they go first, so nothing can take the old service for the new one. serve.sh is
@@ -228,6 +228,9 @@ def cmd_up(a) -> int:
                     "--min-vram-gib", E["MIN_VRAM_GIB"]]
     if E.get("FALLBACK_ACCELERATORS") and E.get("STRATA_BUILD") != "1":
         restore_args.extend(["--fallback-accelerators", E["FALLBACK_ACCELERATORS"]])
+    if E.get("ENGINE") == "mashbox":
+        # The TPU is verified with JAX before the weight download.
+        restore_args.append("--no-verify")
     if E.get("STRATA_BUILD") == "1":
         # This pairing is specifically the 40 GiB card, not the high-memory A100.
         restore_args.extend(["--max-vram-gib", "45"])

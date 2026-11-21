@@ -45,8 +45,8 @@ status() { echo "$*" > /content/STATUS; }
 # ---------------------------------------------------------------- the image
 say "image probe"
 status "stage=probing"
-if [ "${ENGINE:-exl3}" = "llama" ]; then
-  python -c "import sys; print('python', sys.version.split()[0], '(llama native)')" || fail "image probe"
+if [[ "${ENGINE:-exl3}" =~ ^(llama|mashbox)$ ]]; then
+  python -c "import sys; print('python', sys.version.split()[0], '(independent runtime)')" || fail "image probe"
 else
   python - <<'PY' || fail "image probe"
 import json, sys
@@ -65,6 +65,9 @@ nvidia-smi --query-gpu=name,driver_version,compute_cap --format=csv,noheader | s
 if [ "${ENGINE:-exl3}" = "llama" ]; then
   . /content/llama.sh
   llama_install || fail "llama.cpp install"
+elif [ "${ENGINE:-exl3}" = "mashbox" ]; then
+  . /content/mashbox.sh
+  mashbox_install || fail "MASHBOX install (see the lines above)"
 elif [ "${ENGINE:-exl3}" = "maya" ]; then
   . /content/maya.sh
   maya_install || fail "Maya install (see the lines above)"
