@@ -313,11 +313,36 @@ def _parse_sessions(out: str) -> list:
     return found
 
 
+def _normalize_hw(hw):
+    """Canonical accelerator family, tolerating display labels with VRAM."""
+    base = str(hw or "").upper().split("(")[0].strip()
+    if "V6" in base or base.startswith("TPU"):
+        return "V6E1"
+    return base
+
+
+def _display_hardware(hw):
+    """Human label for a server session chip, with family VRAM in parens."""
+    base = _normalize_hw(hw)
+    vram = []
+    for gpu in REGISTRY.get("gpus", []):
+        if str(gpu.get("accelerator") or "").upper() == base:
+            try:
+                v = float(gpu.get("vram_gb") or 0)
+            except (TypeError, ValueError):
+                continue
+            if v and v not in vram:
+                vram.append(v)
+    if not vram:
+        return str(hw or "").strip() or "?"
+    vram.sort()
+    sizes = "/".join(str(int(v)) if v == int(v) else str(v) for v in vram)
+    return "%s (%s GB)" % (base, sizes)
+
+
 def _session_order_key(session):
     """Order server sessions by machine capacity (ascending VRAM)."""
-    hw = str((session or {}).get("hardware") or "").upper()
-    if "V6" in hw or hw.startswith("TPU"):
-        hw = "V6E1"
+    hw = _normalize_hw((session or {}).get("hardware"))
     best = 0.0
     for gpu in REGISTRY.get("gpus", []):
         if str(gpu.get("accelerator") or "").upper() == hw:
@@ -1422,7 +1447,7 @@ class Control:
             if fits:
                 return max(fits, key=lambda r: r["vram_gb"])
         endpoint = ((ours or {}).get("endpoint") or "").lower()
-        hardware = ((ours or {}).get("hardware") or "").upper()
+        hardware = _normalize_hw((ours or {}).get("hardware"))
         if hardware == "T4":
             t4 = next((r for r in runnable if (r.get("accelerator") or "").upper() == "T4" or r.get("free_tier")), None)
             if t4:
@@ -2163,6 +2188,7 @@ class Control:
         with self.lock:
             self.sessions_failed = False
             for s in sessions:
+                s["hardware"] = _display_hardware(s.get("hardware"))
                 named = s.get("name") == self.session
                 # `[?]`: the CLI lost its record of the box, not the box
                 s["ours"] = named or (s.get("name") in (None, "?") and bool(s.get("endpoint"))
