@@ -456,3 +456,58 @@ The prefill scaling with context is the clearest next target: beellama's GPU-res
 experts are only refreshed per batch, while Strata pipelines the next layer's experts over
 PCIe during the current layer's attention. That is the P5 item in
 `docs/PLAN-strata-parity.md` (beellama repo).
+
+## A100-40G: QSA sparse with q8_0 KV and the MTP sidecar (2026-11-21)
+
+Same A100-40G, Qwen3.8-Flash-Next Q2_0, `-ncmoe 2`, `-c 32768 -b 2048 -ub 1024 -fa on`,
+`--load-mode mmap --lazy-mode on`, KV `q8_0`, `-np` default (4 slots). No-spec configs:
+3 runs each, cache 6144 MiB. MTP: 1 run, auto cache + `--vram-reserve-mib 4096`.
+Engine: `feat/strata-parity` @ `e0ee7098a`, Ubuntu 24.04 chroot build (sm_80).
+
+### QSA sparse attention with a Q8_0 KV cache
+
+| config | short tg | pp4k | decode 4k | pp28k | decode 28k |
+|---|---:|---:|---:|---:|---:|
+| base-f16 (release) | 56.75 | 1,461.6 | 47.08 | 1,481.5 | 44.26 |
+| base-q8 (release) | 55.73 | 1,484.5 | 46.04 | 1,513.9 | 39.62 |
+| new-f16 (QSA build) | 56.24 | 1,462.3 | 47.35 | 1,481.7 | 44.22 |
+| new-q8 (QSA build) | 55.59 | 1,485.8 | 46.40 | **1,516.4** | **43.53** |
+
+- QSA q8 vs base q8: prefill **+0.2%** at 28k (within run noise), decode after 28k
+  **+9.9%** (43.53 vs 39.62), short and 4k decode unchanged.
+- The phase-1 target (+25% long prefill) was **not met**. The MoE cache is bypassed for
+  batches larger than 32 tokens (`src/llama-moe-cache.cpp`), so the 28k prefill uploads
+  roughly 39.7 GB of host experts; that dominates over the attention saving.
+- Greedy output is identical to the base on short/4k; at 28k+dec the new-q8 text differs
+  from the base (sparse gather reduces a different set of masked columns). The kernel
+  passes the 28/28 `test-backend-ops` NMSE matrix on CUDA.
+- VRAM: 37,550 MiB for both base-q8 and new-q8 (cache 6144).
+
+### MTP with the unsloth sidecar
+
+`-md MTP/mtp-Qwen3.8-Flash-Next-shared-Q4_K_M.gguf --spec-type draft-mtp
+--spec-draft-n-max 2 --spec-draft-type-k q8_0 --spec-draft-type-v q8_0`,
+`--moe-cache-mib -1 --vram-reserve-mib 4096`.
+
+| config | VRAM ready | pp4k | decode 4k | pp28k | decode 28k | acceptance |
+|---|---:|---:|---:|---:|---:|---:|
+| no-spec q8 | 37,550 | 1,484.5 | 46.04 | 1,513.9 | 39.62 | — |
+| MTP sidecar n-max 2 | 39,052 | 1,227.2 | **61.47** | 1,293.0 | **58.86** | **80.7%** (138/171) |
+
+- Decode: **+33%** after 4k, **+49%** after 28k; short decode 53.96 vs 55.73 (no gain).
+- Prefill: **-17%** at 4k and **-15%** at 28k. The target computes the NextN hidden
+  state for every prompt token so the draft can catch up once; that is the cost.
+- Fixed cache 2048 or 4096 reaches 40,404 MiB and OOMs on the first MTP request;
+  `n-max 4` fails at load. Auto cache plus reserve 4096 works at 39,052 MiB.
+- The QSA-patched sidecar (`compress_ratios[48]` 0 -> 4) **fails to load**; use the
+  original file.
+- Per-request acceptance from the server log: 0.70-0.86; the adaptive draft-max
+  controller settles on 2.
+
+### What is next
+
+The two levers with evidence:
+1. Use the MoE cache during prefill when the host-expert working set fits the cache
+   (the 2 host layers fit in 6 GB). Prototype in progress; target is +10% at 28k.
+2. Reserve the sidecar weights in the auto-size so MTP can keep a real expert cache
+   instead of the current reserve-only layout. Prototype in progress.
