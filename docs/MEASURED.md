@@ -416,3 +416,38 @@ half its decode — with Q2_0 instead of IQ3_S.
 
 `a100-40g/qwen38-fn-q20-beellama` (status `verified`), engine beellama, clean zip
 `collabosm-a100-clean-20261121`, `LLAMA_STREAM_VRAM=1` for the HF->VRAM path.
+
+## Strata vs beellama, same A100-40G, same Q2_0 weights (2026-11-21)
+
+Same VM (`fn40keep`, A100 40 GB, 83 GiB RAM), same model files
+(`ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF` Q2_0 in `/content/fn40/real`), context 32768,
+same prompts (short; 4,662-token code block; ~28.6k-token code block), greedy.
+
+| Metric | Strata 0.2.17 (prebuilt engine) | beellama sm_80 (clean build) | beellama / Strata |
+|---|---:|---:|---:|
+| Load (fresh process, page cache warm) | 197 s experts + cache fill, ready at 210 s | 17 s | 0.08× |
+| VRAM after load | 38,220 MiB | 37,838 MiB | — |
+| Decode, short (64 prompt / 128 out vs 24 / 128) | **85.9 t/s** | 54.0 t/s | 63% |
+| Prefill, 4.6k tokens | **2,394.7 t/s** | 1,157.8 t/s | 48% |
+| Decode after 4.6k | **67.4 t/s** | 46.4 t/s | 69% |
+| Prefill, ~28.6k tokens | **4,629.3 t/s** | 1,175.6 t/s | 25% |
+| Decode after 28.6k | **75.0 t/s** | 45.1 t/s | 60% |
+
+Strata settings: `--max-context 32768 --kv int8`, `--expert-cache auto` (24,576 experts,
+31.64 GiB of VRAM), `--prefill auto`, DFlash2 drafter. beellama settings:
+`-ncmoe 2 --moe-cache-mib -1 -c 32768 -b 2048 -ub 512 -fa on`, KV q8_0, no spec decode.
+
+What the numbers say:
+
+- beellama loads **12× faster** when the page cache is warm (17 s vs 210 s): mmap plus the
+  36 GB n-gram table left on disk, against Strata copying 31.6 GiB of experts into VRAM at
+  0.33 GiB/s.
+- Strata is **1.6× faster on short decode and 1.5× at long context**, and **2-4× faster on
+  prefill**, where the gap grows with the prompt: its prefill scales 2,395 → 4,629 t/s from
+  4.6k to 28.6k tokens, while beellama stays flat at ~1.17k.
+- Both fit the card with essentially the same VRAM (38.2 vs 37.8 GiB).
+
+The prefill scaling with context is the clearest next target: beellama's GPU-resident
+experts are only refreshed per batch, while Strata pipelines the next layer's experts over
+PCIe during the current layer's attention. That is the P5 item in
+`docs/PLAN-strata-parity.md` (beellama repo).
