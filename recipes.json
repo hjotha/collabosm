@@ -107,6 +107,22 @@
    }
   },
   {
+   "id": "l4",
+   "card": "L4 · 24 GB",
+   "accelerator": "L4",
+   "shape": "st",
+   "vram_gb": 24,
+   "min_vram_gib": 21,
+   "cu_per_hour": 1.94,
+   "facts": {
+    "cu_per_hour": {
+     "v": 1.94,
+     "measured": true,
+     "src": "Colab reported 1.94 CU/h with this L4 as the sole active assignment on the paid account, 2026-11-21."
+    }
+   }
+  },
+  {
    "id": "g4",
    "card": "G4 \u00b7 Blackwell",
    "accelerator": "G4",
@@ -790,6 +806,57 @@
      "v": 2,
      "measured": true,
      "src": "Direct HF->VRAM streaming (--hf-stream-vram, 16 threads) on Colab Tesla T4 (60s-75s typical), 2026-11-16."
+    }
+   }
+  },
+  {
+   "id": "l4/swift-qwen38-iq3s",
+   "gpu": "l4",
+   "model": "swift-qwen38-iq3s",
+   "status": "verified",
+   "eta_min": 5,
+   "env": {
+    "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+    "LLAMA_CONTEXT": 262144,
+    "TIER_S_CTX": 196608,
+    "TIER_M_CTX": 229376,
+    "LLAMA_KV_TYPE": "kvarn4",
+    "LLAMA_SPEC_KV_TYPE": "kvarn4",
+    "LLAMA_MTP_DRAFT_L": 2,
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
+    "LLAMA_HF_THREADS": 16,
+    "LLAMA_HF_CHUNK_MB": 8,
+    "LLAMA_HF_DISK_MODE": "background",
+    "COLLABOSM_INITIAL_WAIT_S": 0,
+    "COLLABOSM_READINESS_CONTENTS": 1,
+    "ASSIGN_RETRIES": 3,
+    "ASSIGN_RETRY_DELAY": 5
+   },
+   "facts": {
+    "context": {
+     "v": 262144,
+     "measured": true,
+     "src": "Colab L4, 2026-11-21: the server accepted 24 input tokens plus a 262,120-token output budget and answered with two MTP drafts accepted on tier L. The request used a short prompt and stopped after three output tokens."
+    },
+    "vram_mib": {
+     "v": 15656,
+     "measured": true,
+     "src": "Colab L4 heartbeat immediately after startup on tier S: 15,656 of 23,034 MiB used."
+    },
+    "prefill_tps": {
+     "v": 439.53,
+     "measured": true,
+     "src": "Colab L4: 9,926 uncached prompt tokens with batch 2048 and microbatch 256."
+    },
+    "decode_tps": {
+     "v": 20.62,
+     "measured": true,
+     "src": "Same 9,926-token request, 192 generated tokens and 85 of 122 MTP drafts accepted."
+    },
+    "eta_min": {
+     "v": 3.2,
+     "measured": true,
+     "src": "Single cold start from confirmation to SSH tunnel ready, including GPU assignment, toolkit upload and HF-to-VRAM streaming."
     }
    }
   },
