@@ -132,6 +132,16 @@ def say(msg: str) -> None:
     print("[up %s] %s" % (time.strftime("%H:%M:%S", time.gmtime()), msg), flush=True)
 
 
+def fetch_text(session: str, remote: str, timeout: float) -> str:
+    with tempfile.TemporaryDirectory(prefix="collabosm-fetch-") as work:
+        dest = os.path.join(work, "file")
+        rc, _ = colab(["download", "-s", session, remote, dest], timeout=timeout)
+        if rc == 0 and os.path.isfile(dest):
+            with open(dest, encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+    return ""
+
+
 def indented(text: str) -> None:
     for line in (text or "").splitlines() or [""]:
         print("  " + line, flush=True)
@@ -308,7 +318,8 @@ def cmd_up(a) -> int:
         initial_wait_s = float(E["COLLABOSM_INITIAL_WAIT_S"]) if "COLLABOSM_INITIAL_WAIT_S" in E else round(weights_gib * 5.0)
     except ValueError:
         initial_wait_s = round(weights_gib * 5.0)
-    if initial_wait_s > 0:
+    use_contents = E.get("COLLABOSM_READINESS_CONTENTS") == "1"
+    if initial_wait_s > 0 and not use_contents:
         _rc, _out = colab(["exec", "-s", session, "--timeout", "30", "-f",
                            os.path.join(HERE, "status.py")], timeout=45)
         if ("model_cached:   True" not in _out and "health:         200" not in _out
@@ -318,15 +329,23 @@ def cmd_up(a) -> int:
             time.sleep(initial_wait_s)
     deadline = time.time() + wait_min * 60
     while time.time() < deadline:
-        rc, out = colab(["exec", "-s", session, "--timeout", "30", "-f",
-                         os.path.join(HERE, "status.py")], timeout=45)
+        if use_contents:
+            # serve.sh publishes READY only after /health returned 200 and it wrote endpoint.json.
+            status = fetch_text(session, "/content/STATUS", 8).strip()
+            out = "stage:          " + status if status else ""
+            tunnel = re.search(r"\burl=(\S+)", status)
+            if tunnel:
+                out += "\ntunnel:         " + tunnel.group(1)
+        else:
+            rc, out = colab(["exec", "-s", session, "--timeout", "30", "-f",
+                             os.path.join(HERE, "status.py")], timeout=45)
         indented(out)
         m = re.search(r"^stage: *stage=([a-z_]*)", out, re.M)
         stage = m.group(1) if m else ""
         # READY needs the published URL as well as a healthy API: /health answers a few
         # seconds before serve.sh has the tunnel hostname, and a READY without a URL
         # leaves every client -- and the frontend -- with nothing to point at.
-        if stage == "ready" and "health:         200" in out:
+        if stage == "ready" and (use_contents or "health:         200" in out):
             say("READY")
             for line in out.splitlines():
                 if line.startswith(("tunnel:", "models:")):
@@ -350,6 +369,13 @@ def cmd_up(a) -> int:
                 return 0
             say("!! the API is healthy on the VM but no tunnel URL was published - see /content/tunnel.log")
             return 9
+        if use_contents:
+            if stage == "bootstrap_failed":
+                indented(fetch_text(session, "/content/bootstrap.log", 8)[-4000:])
+                say("!! bootstrap reported failure - the end of /content/bootstrap.log is above")
+                return 1
+            time.sleep(poll_s)
+            continue
         rc, out = colab(["exec", "-s", session, "--timeout", "30", "-f",
                          os.path.join(HERE, "bootstrap_ok.py")], timeout=45)
         if "bootstrap_failed" in out:
@@ -401,14 +427,10 @@ def cmd_fetch(a) -> int:
     """One small file from the VM between __BEGIN__ / __END__, through the contents
     API (`colab download`) -- never `colab exec`, which goes through the kernel and
     was seen to hang for minutes. Nothing at all when there is no such file."""
-    with tempfile.TemporaryDirectory(prefix="collabosm-fetch-") as work:
-        dest = os.path.join(work, "file")
-        colab(["download", "-s", a.session, a.remote, dest], timeout=a.timeout)
-        if os.path.exists(dest) and os.path.getsize(dest) > 0:
-            with open(dest, encoding="utf-8", errors="replace") as fh:
-                text = fh.read()
-            sys.stdout.write("__BEGIN__\n" + text + "\n__END__\n")
-            sys.stdout.flush()
+    content = fetch_text(a.session, a.remote, a.timeout)
+    if content:
+        sys.stdout.write("__BEGIN__\n" + content + "\n__END__\n")
+        sys.stdout.flush()
     return 0
 
 

@@ -65,6 +65,14 @@ wait "$!"
                             name = f"{option}-{tier}"
                             self.assertIn(f"{name} = {env[key]}", ini)
                             self.assertEqual(flags[flags.index("--" + name) + 1], env[key])
+                    if row["id"] == t4["id"]:
+                        self.assertIn("--hf-stream-vram", flags)
+                        for option, value in (
+                            ("--hf-download-threads", "16"),
+                            ("--hf-stream-chunk-mb", "8"),
+                            ("--hf-stream-disk-mode", "background"),
+                        ):
+                            self.assertEqual(flags[flags.index(option) + 1], value)
                     spec_kv = env.get("LLAMA_SPEC_KV_TYPE") or env["LLAMA_KV_TYPE"]
                     for suffix in ("k", "v"):
                         name = f"spec-draft-type-{suffix}"

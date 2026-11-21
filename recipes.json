@@ -720,6 +720,11 @@
     "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
     "LLAMA_CONTEXT": 200704,
     "BEELLAMA_ZIP_URL": "https://huggingface.co/hjotha/beellama-t4-cuda/resolve/main/beellama-t4-cuda.zip",
+    "LLAMA_HF_THREADS": 16,
+    "LLAMA_HF_CHUNK_MB": 8,
+    "LLAMA_HF_DISK_MODE": "background",
+    "COLLABOSM_INITIAL_WAIT_S": 0,
+    "COLLABOSM_READINESS_CONTENTS": 1,
     "ASSIGN_RETRIES": 6,
     "ASSIGN_RETRY_DELAY": 10
    },

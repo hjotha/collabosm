@@ -38,7 +38,7 @@ WHEEL_URL=${WHEEL_URL:-https://github.com/turboderp-org/exllamav3/releases/downl
 SRC_TAG=${SRC_TAG:-v1.5.1}
 SRC_DIR=${SRC_DIR:-/content/exllamav3-src}
 
-fail() { echo "BOOTSTRAP_FAILED: $*"; echo "$*" > /content/STATUS; exit 1; }
+fail() { echo "BOOTSTRAP_FAILED: $*"; status "stage=bootstrap_failed"; exit 1; }
 say()  { echo "[boot $(date -u +%H:%M:%S)] $*"; }
 status() { echo "$*" > /content/STATUS; }
 
