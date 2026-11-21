@@ -1,5 +1,54 @@
 #!/usr/bin/env bash
 # T4 setup using the user's beellama.cpp fork with local KVarN4 tiers (no remote-attn).
+
+# The optional MTP draft (--model-draft/-md) is a separate GGUF: it is not in the
+# target's repo, so it gets its own URL/SHA and lives beside the target's shards.
+llama_mtp_path() {
+  local file="${LLAMA_MTP_FILE:-}"
+  if [ -z "$file" ]; then
+    file="${LLAMA_MTP_URL:-}"
+    file="${file%%\?*}"
+    file="${file##*/}"
+  fi
+  case "$file" in
+    /*) printf '%s\n' "$file" ;;
+    *) printf '%s\n' "$MODEL_DIR/$file" ;;
+  esac
+}
+
+llama_mtp_download() {
+  [ -n "${LLAMA_MTP_URL:-}" ] || return 0
+  local dest part sha
+  dest=$(llama_mtp_path)
+  sha="${LLAMA_MTP_SHA256:-}"
+  if [ -f "$dest" ]; then
+    if [ -z "$sha" ]; then
+      echo "[llama] MTP sidecar present (no sha256 to verify): $dest"
+      return 0
+    fi
+    if printf '%s  %s\n' "$sha" "$dest" | sha256sum -c --status -; then
+      echo "[llama] MTP sidecar verified: $dest"
+      return 0
+    fi
+    echo "[llama] MTP sidecar sha256 mismatch; downloading again: $dest" >&2
+  fi
+  mkdir -p "$(dirname -- "$dest")" || return 1
+  part="$dest.part"
+  rm -f "$part"
+  echo "[llama] downloading MTP sidecar -> $dest"
+  if ! curl -fL --retry 3 --retry-delay 2 --connect-timeout 30 -o "$part" "$LLAMA_MTP_URL"; then
+    rm -f "$part"
+    return 1
+  fi
+  if [ -n "$sha" ] && ! printf '%s  %s\n' "$sha" "$part" | sha256sum -c --status -; then
+    echo "[llama] ERROR: MTP sidecar sha256 mismatch after download" >&2
+    rm -f "$part"
+    return 1
+  fi
+  [ -n "$sha" ] || echo "[llama] WARNING: LLAMA_MTP_SHA256 is empty; sidecar not verified" >&2
+  mv -f "$part" "$dest"
+}
+
 llama_install() {
   local base=/content/collabosm-llama bin
   mkdir -p "$base/llama" "$base/slot-cache" "$MODEL_DIR" || return 1
@@ -42,6 +91,12 @@ PY
   if ldd "$bin" "$(dirname "$bin")/libggml-cuda.so" 2>&1 | grep -q 'not found'; then
     ldd "$bin" "$(dirname "$bin")/libggml-cuda.so" 2>&1 | grep 'not found' >&2
     return 1
+  fi
+  if [ -n "${LLAMA_MTP_URL:-}" ]; then
+    # -md points at a local file, so this is needed even when the target streams
+    # from HF straight to VRAM below.
+    status "stage=weights"
+    llama_mtp_download || return 1
   fi
   if [ "${LLAMA_EXL3_DIR:-0}" = "1" ]; then
     if [ "${LLAMA_STREAM_VRAM:-0}" = "1" ]; then
@@ -248,7 +303,8 @@ EOF
 }
 
 llama_start() {
-  local bin model_url model_path
+  local bin model_url model_path mtp_path=""
+  local -a draft_args=()
   bin=$(find /content/collabosm-llama/llama -maxdepth 4 -type f -name llama-server -print -quit)
   [ -n "$bin" ] || return 1
   if [ "${LLAMA_EXL3_DIR:-0}" = "1" ]; then
@@ -261,6 +317,14 @@ llama_start() {
     if [ "${LLAMA_STREAM_VRAM:-1}" != "1" ] && [ ! -f "$model_path" ]; then
       return 1
     fi
+  fi
+  if [ -n "${LLAMA_MTP_URL:-}" ]; then
+    mtp_path=$(llama_mtp_path)
+    if [ ! -f "$mtp_path" ]; then
+      echo "[llama] ERROR: MTP sidecar missing: $mtp_path" >&2
+      return 1
+    fi
+    draft_args=(--model-draft "$mtp_path" --spec-draft-n-max "${LLAMA_MTP_DRAFT:-0}")
   fi
   export LD_LIBRARY_PATH="$(dirname "$bin"):/usr/local/cuda/lib64:/usr/lib64-nvidia:${LD_LIBRARY_PATH:-}"
   llama_write_ini || return 1
@@ -294,6 +358,7 @@ llama_start() {
   nohup "$bin" \
     --model "$model_path" \
     "${stream_args[@]}" \
+    "${draft_args[@]}" \
     --alias "${LLAMA_ALIASES:-$MODEL_ID,qwen-3.8-27b,Qwen3.8-27B}" \
     --batch-size "$LLAMA_BATCH" \
     --ubatch-size "$LLAMA_UBATCH" \

@@ -43,6 +43,12 @@ class LlamaRecipeTests(unittest.TestCase):
                     continue
                 run_env = dict(os.environ, **env)
                 run_env.update(PORT="8090", KEY_FILE="key", LOG="log", LLAMA_STREAM_VRAM="1")
+                mtp_path = None
+                if env.get("LLAMA_MTP_URL"):
+                    run_env["MODEL_DIR"] = env["MODEL_DIR"] = str(root / "vm/model")
+                    mtp_path = Path(run_env["MODEL_DIR"]) / env["LLAMA_MTP_FILE"]
+                    mtp_path.parent.mkdir(parents=True, exist_ok=True)
+                    mtp_path.touch()
                 with self.subTest(recipe=row["id"]):
                     subprocess.run([BASH, "-euc", '''
 source ./llama.sh
@@ -97,6 +103,26 @@ wait "$!"
                         expected_model = f"{env['MODEL_DIR']}/{env['LLAMA_FILE']}"
                         self.assertIn(f"model = {expected_model}", ini)
                         self.assertEqual(flags[flags.index("--model") + 1], expected_model)
+                    if mtp_path is not None:
+                        self.assertEqual(flags[flags.index("--model-draft") + 1], str(mtp_path))
+                        self.assertEqual(flags[flags.index("--spec-type") + 1], env["LLAMA_SPEC_TYPE"])
+                        self.assertEqual(flags[flags.index("--spec-draft-n-max") + 1],
+                                         str(env["LLAMA_MTP_DRAFT"]))
+
+    def test_mtp_sidecar_recipe_is_pinned(self):
+        reg = recipe.load()
+        row = next(r for r in recipe.flat(reg) if r["id"] == "a100-40g/qwen38-fn-q20-mtp-beellama")
+        self.assertEqual(row["status"], "experimental")
+        env = row["env"]
+        self.assertEqual(env["LLAMA_SPEC_TYPE"], "draft-mtp")
+        self.assertEqual(env["LLAMA_MTP_DRAFT"], "2")
+        self.assertEqual(env["LLAMA_MTP_DRAFT_L"], "2")
+        self.assertEqual(env["LLAMA_SPEC_KV_TYPE"], "q8_0")
+        self.assertRegex(env["LLAMA_MTP_SHA256"], r"^[0-9a-f]{64}$")
+        self.assertRegex(env["LLAMA_MTP_URL"], r"/resolve/[0-9a-f]{40}/MTP/")
+        self.assertNotIn("/resolve/main/", env["LLAMA_MTP_URL"])
+        self.assertIn("collabosm-a100-clean-20261121", env["BEELLAMA_ZIP_URL"])
+        self.assertNotIn("parity2", env["BEELLAMA_ZIP_URL"])
 
     def test_exl3_dir_non_adaptive_flags(self):
         defaults = dict(

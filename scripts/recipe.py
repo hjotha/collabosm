@@ -12,6 +12,8 @@ Every number carries its evidence: `facts[<name>] = {"v": ..., "measured": bool,
     verified     run end to end on that card; its numbers are measured
     unmeasured   runnable launch path exists, but the full recipe is not end-to-end verified;
                  individual model-only facts may still be measured
+    experimental runnable launch path for a new combination (for example an MTP sidecar);
+                 deliberately has no speed facts until the benchmark validates it
     placeholder  listed so the choice is visible; refused until it is written
 
     python3 scripts/recipe.py list
@@ -36,7 +38,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REGISTRY = os.environ.get("RECIPES_FILE") or os.path.join(HERE, os.pardir, "recipes.json")
-STATUSES = ("verified", "unmeasured", "placeholder")
+STATUSES = ("verified", "unmeasured", "experimental", "placeholder")
 # what serves the model on the box: our ExLlamaV3 API, Strata, or Project Maya
 ENGINES = ("exl3", "strata", "maya", "llama", "mashbox")
 DEFAULT = "a100-40g/qwen38-27b"

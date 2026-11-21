@@ -1142,6 +1142,85 @@
    }
   },
   {
+   "id": "a100-40g/qwen38-fn-q20-mtp-beellama",
+   "gpu": "a100-40g",
+   "model": "qwen38-fn-q2_0",
+   "status": "experimental",
+   "eta_min": 22,
+   "env": {
+    "LLAMA_FILE": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+    "LLAMA_EXTRA_FILES": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+    "LLAMA_MTP_URL": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/resolve/f5d175de2cf7f720d45d6064019a81fcf056e986/MTP/mtp-Qwen3.8-Flash-Next-shared-Q4_K_M.gguf",
+    "LLAMA_MTP_SHA256": "f521868a9e143718bef513772f6e04d9642551e362cf2439636d2abdbd149dfc",
+    "LLAMA_MTP_FILE": "MTP/mtp-Qwen3.8-Flash-Next-shared-Q4_K_M.gguf",
+    "LLAMA_CONTEXT": 32768,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
+    "LLAMA_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_KV_TYPE": "q8_0",
+    "LLAMA_SPEC_TYPE": "draft-mtp",
+    "LLAMA_MTP_DRAFT": 2,
+    "LLAMA_MTP_DRAFT_L": 2,
+    "LLAMA_MTP_P_MIN": 0.65,
+    "LLAMA_STREAM_VRAM": 1,
+    "LLAMA_LOAD_MODE": "mmap",
+    "LLAMA_LAZY_MODE": "on",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip",
+    "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
+    "ASSIGN_RETRIES": 8,
+    "ASSIGN_RETRY_DELAY": 15,
+    "LLAMA_GPU_LAYERS": 99,
+    "LLAMA_FIT": "off",
+    "LLAMA_MOE_CACHE_MIB": 4096,
+    "LLAMA_VRAM_RESERVE_MIB": 4096,
+    "LLAMA_CACHE_RAM": 1024,
+    "LLAMA_SLOT_SAVE_MAX_MB": 2048,
+    "LLAMA_BATCH": 2048,
+    "LLAMA_UBATCH": 512,
+    "COLLABOSM_INITIAL_WAIT_S": 120,
+    "LLAMA_FIT_TARGET": 4096,
+    "FALLBACK_ACCELERATORS": "",
+    "LLAMA_N_CPU_MOE": 2
+   },
+   "facts": {
+    "weights": {
+     "v": 66.4,
+     "unit": "GB",
+     "measured": true,
+     "src": "ISTA-DASLab Q2_0 shard1 37.6 GB + shard2 28.8 GB (same target as a100-40g/qwen38-fn-q20-beellama)"
+    },
+    "sidecar": {
+     "v": "1907151936 B, sha256 f521868a9e143718bef513772f6e04d9642551e362cf2439636d2abdbd149dfc",
+     "measured": true,
+     "src": "Hugging Face LFS metadata at pinned revision f5d175de2cf7f720d45d6064019a81fcf056e986; HEAD and x-linked-size checked 2026-11-21"
+    },
+    "draft": {
+     "v": "draft-mtp, n-max 2, draft KV q8_0, p-min 0.65",
+     "measured": false,
+     "src": "recipe configuration; the MTP path has not been run end to end on the A100-40G yet"
+    },
+    "context": {
+     "v": 32768,
+     "unit": "tokens",
+     "measured": false,
+     "src": "recipe configuration, same context/batch/ubatch as a100-40g/qwen38-fn-q20-beellama"
+    },
+    "placement": {
+     "v": "-ncmoe 2 + moe-cache 4096 MiB, b 2048 / ub 512, target and draft KV q8_0, mmap, lazy on",
+     "measured": false,
+     "src": "recipe configuration; VRAM and speed are unmeasured for this sidecar recipe"
+    },
+    "engine": {
+     "v": "beellama sm_80 clean build, release collabosm-a100-clean-20261121",
+     "measured": true,
+     "src": "release tag and the zip this recipe downloads; the newer parity2 zip is not used until its benchmark validates it"
+    }
+   },
+   "why": {
+    "en": "Experimental MTP sidecar: the Q2_0 target has no NextN block, so beellama loads unsloth's shared-Q4_K_M draft head as a separate GGUF with -md and --spec-type draft-mtp. No speed is claimed until the parity benchmark passes; the newer parity2 beellama zip is deliberately not used yet."
+   }
+  },
+  {
    "id": "a100-40g/qwen38-fn-q20-ncmoe-beellama",
    "gpu": "a100-40g",
    "model": "qwen38-fn-q2_0",
