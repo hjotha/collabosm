@@ -557,7 +557,8 @@
    "eta_min": 40,
    "env": {
     "STRATA_CONTEXT": 262144,
-    "STRATA_KV": "int8"
+    "STRATA_KV": "int8",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip"
    },
    "facts": {
     "weights": {
@@ -990,7 +991,7 @@
     "LLAMA_LOAD_MODE": "mmap",
     "LLAMA_LAZY_MODE": "on",
     "LLAMA_SPEC_TYPE": "none",
-    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-moe-20261121/beellama-a100-moe.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip",
     "LLAMA_ALIASES": "qwen3.8-flash-next-iq3_s",
     "ASSIGN_RETRIES": 8,
     "ASSIGN_RETRY_DELAY": 15,
@@ -1026,7 +1027,7 @@
     "LLAMA_LOAD_MODE": "mmap",
     "LLAMA_LAZY_MODE": "on",
     "LLAMA_SPEC_TYPE": "none",
-    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-moe-20261121/beellama-a100-moe.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip",
     "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
     "ASSIGN_RETRIES": 8,
     "ASSIGN_RETRY_DELAY": 15,
@@ -1063,7 +1064,7 @@
     "LLAMA_LOAD_MODE": "mmap",
     "LLAMA_LAZY_MODE": "auto",
     "LLAMA_SPEC_TYPE": "none",
-    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-moe-20261121/beellama-a100-moe.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip",
     "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
     "ASSIGN_RETRIES": 8,
     "ASSIGN_RETRY_DELAY": 15,
