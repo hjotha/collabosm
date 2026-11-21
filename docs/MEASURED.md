@@ -511,3 +511,45 @@ The two levers with evidence:
    (the 2 host layers fit in 6 GB). Prototype in progress; target is +10% at 28k.
 2. Reserve the sidecar weights in the auto-size so MTP can keep a real expert cache
    instead of the current reserve-only layout. Prototype in progress.
+
+## A100-40G — A/B das flags Strata (2026-11-21)
+
+Engine `parity5` (`feat/strata-opt` @ `f5b72f42a`), 2 runs per config, Qwen3.8-Flash-Next Q2_0,
+Q8_0/Q8_0, `b 2048 / ub 1024`, `-ncmoe 2`, cache 6144 MiB unless noted. Same prompts as the
+earlier parity table.
+
+| config | short tg | pp4k | pp28k | decode 28k |
+|---|---:|---:|---:|---:|
+| base-q8 (release) | 48.31* | 1,410.8 | 1,511.3 | 39.63 |
+| p0, prefill flag off | 56.34 | 1,486.1 | 1,514.0 | 43.55 |
+| p1, `LLAMA_MOE_CACHE_PREFILL=1` | 56.76 | 1,556.8 | **1,567.4** | 44.11 |
+| m1, p1 + `LLAMA_MOE_MAP_DEVICE=1` | **59.72** | 1,565.4 | 1,574.0 | 44.40 |
+| MTP, `LLAMA_MTP_RESERVE_WEIGHTS=0` | 55.58 | 1,231.3 | 1,292.2 | 53.14 |
+| MTP, `LLAMA_MTP_RESERVE_WEIGHTS=1` | **59.95** | 1,234.6 | 1,292.3 | **57.70** |
+| MTP, reserve 1 + `LLAMA_MTP_KV_STORE_ONLY=1` | 56.80 | 1,241.9 | 1,311.6 | 58.53 |
+| overlap 1 + ring 0/1 (cache 1024) | 56.6–56.8 | 1,500–1,502 | 1,536–1,538 | ~44.1 |
+| `LLAMA_QSA_INDEXER_BOUNDS` 0/1 | 59.8/59.8 | 1,564/1,580 | 1,573/1,568 | 44.4/44.3 |
+| `LLAMA_GDN_CONV_L2` 0/1 | 59.6/60.6 | 1,564/1,567 | 1,573/1,576 | 44.3/44.3 |
+
+\* base short caught the cold first run (39.8 t/s); the second run was 56.9.
+
+Verdict:
+
+- `LLAMA_MOE_CACHE_PREFILL`: **+3.5%** at 28k and **+4.8%** at 4k, decode unchanged. Real but below
+  the +10% experiment threshold: with `-ncmoe 2` only two layers' experts (~1.5 GB) are host, so
+  removing their recurring upload is a small part of the 28k prefill. The recipe enables it.
+- `LLAMA_MOE_MAP_DEVICE`: +0.4% prefill, **+5.2% short decode**, +0.7% at 28k. Marginal; left off
+  in the recipes until a decode-focused workload needs it.
+- `LLAMA_MTP_RESERVE_WEIGHTS`: **+8.6% decode at 28k** (53.14 → 57.70) and **+7.9% short**. The
+  reserve makes the auto cache account for the sidecar; the MTP recipe enables it.
+- `LLAMA_MTP_KV_STORE_ONLY`: +1% (noise). Left off.
+- `LLAMA_MOE_UPLOAD_OVERLAP`/`LLAMA_MOE_PINNED_RING`: no measurable effect at cache 1024. Off.
+- `LLAMA_QSA_INDEXER_BOUNDS` and `LLAMA_GDN_CONV_L2`: no measurable effect on the Flash-Next
+  prefill/decode. Off.
+- MTP overall vs no-spec: decode **+31%** at 28k (57.70 vs 44.11), **+37%** at 4k (64.77 vs 47.14),
+  short +5.6%; prefill **-17%** (1,292 vs 1,567). VRAM 39,052 MiB ready / 39,740 peak.
+
+The 28k prefill gap to Strata (4,629 vs 1,567) is **not** explained by the H2D of the two host
+layers or by these flags. The next step is the nsys/scheduler attribution (`GGML_SCHED_SPLIT_TIMING`,
+`LLAMA_GRAPH_PREP_PROFILE`), not more default-off flags. Recipes now use the `parity5` zip; the
+base recipe enables `LLAMA_MOE_CACHE_PREFILL=1` and the MTP recipe `LLAMA_MTP_RESERVE_WEIGHTS=1`.

@@ -108,7 +108,7 @@
   },
   {
    "id": "l4",
-   "card": "L4 · 24 GB",
+   "card": "L4 \u00b7 24 GB",
    "accelerator": "L4",
    "shape": "st",
    "vram_gb": 24,
@@ -1124,7 +1124,7 @@
     "LLAMA_LOAD_MODE": "mmap",
     "LLAMA_LAZY_MODE": "on",
     "LLAMA_SPEC_TYPE": "none",
-    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-parity5-20261121/beellama-a100-parity5.zip",
     "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
     "ASSIGN_RETRIES": 8,
     "ASSIGN_RETRY_DELAY": 15,
@@ -1139,7 +1139,8 @@
     "COLLABOSM_INITIAL_WAIT_S": 60,
     "LLAMA_FIT_TARGET": 4096,
     "FALLBACK_ACCELERATORS": "",
-    "LLAMA_N_CPU_MOE": 2
+    "LLAMA_N_CPU_MOE": 2,
+    "LLAMA_MOE_CACHE_PREFILL": 1
    },
    "facts": {
     "cu_per_hour": {
@@ -1148,10 +1149,10 @@
      "src": "frontend rate for the A100 40G assignment used on 2026-11-21"
     },
     "vram": {
-     "v": 37550,
+     "v": 37488,
      "unit": "MiB",
      "measured": true,
-     "src": "A100-40G, 3 runs, -ncmoe 2 + cache 6144, q8_0 KV"
+     "src": "A100 parity5, 2 runs, cache 6144 + PREFILL=1, q8_0 KV"
     },
     "weights": {
      "v": 66.4,
@@ -1160,35 +1161,35 @@
      "src": "ISTA-DASLab Q2_0 shard1 37.6 GB + shard2 28.8 GB"
     },
     "load_s": {
-     "v": 13.3,
+     "v": 13.2,
      "unit": "s",
      "measured": true,
-     "src": "page cache warm, 3 runs; first cold load 113 s"
+     "src": "page cache warm, 2 runs"
     },
     "decode_tps": {
-     "v": 55.73,
+     "v": 56.76,
      "measured": true,
-     "src": "3-run median, 24-token prompt / 128 out"
+     "src": "2-run median, 24-token prompt / 128 out"
     },
     "prefill_tps": {
-     "v": 1484.5,
+     "v": 1556.8,
      "measured": true,
-     "src": "3-run median, 4,622-token cold prompt"
+     "src": "2-run median, 4,622-token cold prompt"
     },
     "decode_4k_tps": {
-     "v": 46.04,
+     "v": 47.14,
      "measured": true,
-     "src": "3-run median, decode after the 4.6k prefill"
+     "src": "2-run median, decode after the 4.6k prefill"
     },
     "prefill_30k_tps": {
-     "v": 1513.9,
+     "v": 1567.4,
      "measured": true,
-     "src": "3-run median, 28,542-token cold prompt"
+     "src": "2-run median, 28,542-token cold prompt"
     },
     "decode_30k_tps": {
-     "v": 39.62,
+     "v": 44.11,
      "measured": true,
-     "src": "3-run median, decode after the 28.5k prefill"
+     "src": "2-run median, decode after the 28.5k prefill"
     },
     "context": {
      "v": 32768,
@@ -1197,9 +1198,9 @@
      "src": "llama-server -c 32768, 30k-token prompt served"
     },
     "placement": {
-     "v": "-ncmoe 2 + fixed 6144 MiB MoE cache, b 2048 / ub 1024, KV q8_0, mmap, lazy on",
+     "v": "-ncmoe 2 + 6144 MiB MoE cache with LLAMA_MOE_CACHE_PREFILL=1, b 2048 / ub 1024, KV q8_0, mmap, lazy on",
      "measured": true,
-     "src": "A100 parity bench 2026-11-21"
+     "src": "A100 flag A/B 2026-11-21"
     },
     "engine": {
      "v": "beellama sm_80 clean build, release collabosm-a100-clean-20261121",
@@ -1232,7 +1233,7 @@
     "LLAMA_STREAM_VRAM": 1,
     "LLAMA_LOAD_MODE": "mmap",
     "LLAMA_LAZY_MODE": "on",
-    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip",
+    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-parity5-20261121/beellama-a100-parity5.zip",
     "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
     "ASSIGN_RETRIES": 8,
     "ASSIGN_RETRY_DELAY": 15,
@@ -1247,7 +1248,8 @@
     "COLLABOSM_INITIAL_WAIT_S": 120,
     "LLAMA_FIT_TARGET": 4096,
     "FALLBACK_ACCELERATORS": "",
-    "LLAMA_N_CPU_MOE": 2
+    "LLAMA_N_CPU_MOE": 2,
+    "LLAMA_MTP_RESERVE_WEIGHTS": 1
    },
    "facts": {
     "weights": {
@@ -1262,9 +1264,9 @@
      "src": "Hugging Face LFS metadata at pinned revision f5d175de2cf7f720d45d6064019a81fcf056e986; HEAD and x-linked-size checked 2026-11-21"
     },
     "draft": {
-     "v": "draft-mtp, n-max 2, draft KV q8_0, auto cache + reserve 4096",
+     "v": "draft-mtp, n-max 2, draft KV q8_0, auto cache (-1) + reserve 4096, RESERVE_WEIGHTS=1",
      "measured": true,
-     "src": "A100-40G parity bench 2026-11-21"
+     "src": "A100 flag A/B 2026-11-21"
     },
     "context": {
      "v": 32768,
@@ -1283,45 +1285,51 @@
      "src": "release tag and the zip this recipe downloads; the newer parity2 zip is not used until its benchmark validates it"
     },
     "vram_note": {
-     "v": "fixed cache 2048 or 4096 reaches 40404 MiB and OOMs on the first MTP request; n-max 4 fails at load; auto cache (-1) + reserve 4096 works at 39052 MiB; the QSA-patched sidecar (compress_ratios 0->4) fails to load, use the original",
+     "v": "fixed cache 2048/4096 OOMs on the first request; auto (-1) + reserve 4096 with RESERVE_WEIGHTS=1 works at 39,052 ready / 39,740 peak; the original sidecar only",
      "measured": true,
-     "src": "A100-40G MTP test 2026-11-21"
+     "src": "A100 parity5 2026-11-21"
     },
     "vram": {
      "v": 39052,
      "unit": "MiB",
      "measured": true,
-     "src": "A100-40G, MTP sidecar Q4_K_M, auto cache + reserve 4096, one run"
+     "src": "A100 parity5, MTP sidecar, auto cache + reserve 4096 + RESERVE_WEIGHTS=1; peak 39,740"
     },
     "decode_tps": {
-     "v": 53.96,
+     "v": 59.95,
      "measured": true,
-     "src": "one run, short prompt; no gain vs the 55.73 no-spec baseline"
+     "src": "2-run median, short prompt, with the reserve enabled"
     },
     "decode_4k_tps": {
-     "v": 61.47,
+     "v": 64.77,
      "measured": true,
-     "src": "one run, decode after 4.6k; no-spec baseline 46.04"
+     "src": "2-run median, decode after 4.6k; no-spec 47.14"
     },
     "decode_30k_tps": {
-     "v": 58.86,
+     "v": 57.7,
      "measured": true,
-     "src": "one run, decode after 28.5k; no-spec baseline 39.62"
+     "src": "2-run median, decode after 28.5k; no-spec 44.11"
     },
     "prefill_tps": {
-     "v": 1227.2,
+     "v": 1234.6,
      "measured": true,
-     "src": "one run, 4.6k prompt; no-spec baseline 1484.5 (MTP nextn head costs ~17%)"
+     "src": "2-run median, 4.6k prompt; no-spec 1556.8 (-21%, the nextn head)"
     },
     "prefill_30k_tps": {
-     "v": 1293.0,
+     "v": 1292.3,
      "measured": true,
-     "src": "one run, 28.5k prompt; no-spec baseline 1513.9"
+     "src": "2-run median, 28.5k prompt; no-spec 1567.4"
     },
     "acceptance": {
-     "v": "80.7% (138/171 draft tokens); per-request 0.70-0.86",
+     "v": "~80% (per-request 0.62-0.81 in the parity5 run; 80.7% aggregate earlier)",
      "measured": true,
-     "src": "llama-server metrics + slot print_timing, one run"
+     "src": "llama-server draft acceptance logs"
+    },
+    "load_s": {
+     "v": 14.6,
+     "unit": "s",
+     "measured": true,
+     "src": "page cache warm, 2 runs"
     }
    },
    "why": {
