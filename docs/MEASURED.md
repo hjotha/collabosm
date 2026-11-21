@@ -358,3 +358,61 @@ would no longer be about the 40 GiB card.
   host experts in one buffer. Above that (e.g. Flash-Next with ~17 GiB of host experts)
   the allocation falls back to pageable memory; a chunked `cudaHostRegister` arena is the
   next step.
+
+# Qwen3.8-Flash-Next Q2_0 on the A100-40G with beellama (2026-11-21)
+
+First working configuration of Flash-Next GGUF on the 39 GiB card with the user's fork,
+after the load crash was traced to an inconsistent (incremental) build of the Colab zip
+(see `docs/FN40-CRASH-ROOTCAUSE.md` in the beellama repo).
+
+Engine: beellama sm_80, release `collabosm-a100-clean-20261121` (clean build).
+Model: `ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF` revision `2a55d759…`, Q2_0
+(shard 1 37.6 GB + shard 2 28.8 GB, 66.4 GB total, both on `/content`).
+Box: A100 40 GB (40,960 MiB), 83 GiB host RAM, 236 GB disk.
+
+## Configuration
+
+    -ngl 99 --n-cpu-moe 2 --moe-cache-mib -1        # 2 layers' experts in RAM, the rest cached in VRAM
+    -c 32768 --load-mode mmap --lazy-mode on       # the 28.8 GB n-gram table stays mmap'd
+    -b 2048 -ub 512 -fa on                         # prefill throughput
+    KV q8_0
+
+`--moe-cache-mib -1` is the automatic size: it is resolved **after** the first
+`sched_reserve()`, so it uses the VRAM the compute buffers left, capped by the host expert
+bytes (see `docs/PLAN-strata-parity.md`, P1/P2).
+
+## Measured (two runs, same config, same VM)
+
+| Metric | Run 1 | Run 2 |
+|---|---:|---:|
+| Load (page cache warm) | 17 s | 17 s |
+| VRAM after load | 37,838 MiB | 37,838 MiB |
+| Decode, short (24 prompt / 128 out) | 54.08 t/s | 53.91 t/s |
+| Prefill, 4,622 tokens cold | 1,157.8 t/s | 1,157.7 t/s |
+| Decode after that prefill | 46.41 t/s | 46.42 t/s |
+| Prefill, ~30k tokens cold | 1,175.6 t/s | 1,175.5 t/s |
+| Decode after that prefill | 44.50 t/s | 45.71 t/s |
+
+## What the expert cache bought (same card, same model)
+
+| Placement | VRAM | decode short | prefill 4k | decode 7k |
+|---|---:|---:|---:|---:|
+| `-ncmoe 8`, cache off | 31,600 MiB | 38.7 t/s | 314 t/s | 31.8 t/s |
+| `-ncmoe 8`, cache auto | 37,002 MiB | 50.6 t/s | 354 t/s | 43.3 t/s |
+| `-ncmoe 4`, cache auto | 36,998 MiB | 52.0 t/s | 443 t/s | 46.0 t/s |
+| `-ncmoe 2`, cache auto, b512/ub128 | 36,994 MiB | 54.3 t/s | 513 t/s | 46.8 t/s |
+| `-ncmoe 2`, cache auto, b2048/ub512 | 37,094 MiB | 55.7 t/s | 1,159.6 t/s | 46.4 t/s |
+| `-ncmoe 2`, cache auto, b4096/ub1024 | 37,228 MiB | 52.8 t/s | 1,482.7 t/s | 33.2 t/s (4k) |
+
+Reading: the automatic cache is worth +30% to +87% decode; the batch/ubatch raise is worth
++126% prefill, at the cost of a slightly worse decode at 4k with ub 1024. The chosen
+`b 2048 / ub 512` keeps both.
+
+Reference on the same class of card (Strata engine, IQ3_S): prefill 1,320–2,567 t/s,
+decode 87.6–93.0 t/s. So beellama now sits near the low end of Strata's prefill and about
+half its decode — with Q2_0 instead of IQ3_S.
+
+## Recipe
+
+`a100-40g/qwen38-fn-q20-beellama` (status `verified`), engine beellama, clean zip
+`collabosm-a100-clean-20261121`, `LLAMA_STREAM_VRAM=1` for the HF->VRAM path.

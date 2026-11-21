@@ -1011,12 +1011,12 @@
    "id": "a100-40g/qwen38-fn-q20-beellama",
    "gpu": "a100-40g",
    "model": "qwen38-fn-q2_0",
-   "status": "unmeasured",
+   "status": "verified",
    "eta_min": 20,
    "env": {
     "LLAMA_FILE": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
     "LLAMA_EXTRA_FILES": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
-    "LLAMA_CONTEXT": 8192,
+    "LLAMA_CONTEXT": 32768,
     "TIER_S_CTX": 0,
     "TIER_M_CTX": 0,
     "LLAMA_KV_TYPE": "q8_0",
@@ -1031,17 +1031,84 @@
     "LLAMA_ALIASES": "qwen3.8-flash-next-q2_0,qwen3.8-flash-next,Qwen3.8-Flash-Next",
     "ASSIGN_RETRIES": 8,
     "ASSIGN_RETRY_DELAY": 15,
-    "LLAMA_GPU_LAYERS": -1,
-    "LLAMA_FIT": "on",
-    "LLAMA_MOE_CACHE_MIB": 0,
+    "LLAMA_GPU_LAYERS": 99,
+    "LLAMA_FIT": "off",
+    "LLAMA_MOE_CACHE_MIB": -1,
     "LLAMA_VRAM_RESERVE_MIB": 1536,
     "LLAMA_CACHE_RAM": 1024,
     "LLAMA_SLOT_SAVE_MAX_MB": 2048,
-    "LLAMA_BATCH": 512,
-    "LLAMA_UBATCH": 128,
+    "LLAMA_BATCH": 2048,
+    "LLAMA_UBATCH": 512,
     "COLLABOSM_INITIAL_WAIT_S": 60,
     "LLAMA_FIT_TARGET": 4096,
-    "FALLBACK_ACCELERATORS": ""
+    "FALLBACK_ACCELERATORS": "",
+    "LLAMA_N_CPU_MOE": 2
+   },
+   "facts": {
+    "cu_per_hour": {
+     "v": 6.73,
+     "measured": true,
+     "src": "frontend rate for the A100 40G assignment used on 2026-11-21"
+    },
+    "vram": {
+     "v": 37.0,
+     "unit": "GiB",
+     "measured": true,
+     "src": "nvidia-smi 37,838 MiB of 40,960 after load, -ncmoe 2 + --moe-cache-mib -1"
+    },
+    "weights": {
+     "v": 66.4,
+     "unit": "GB",
+     "measured": true,
+     "src": "ISTA-DASLab Q2_0 shard1 37.6 GB + shard2 28.8 GB"
+    },
+    "load_s": {
+     "v": 17,
+     "unit": "s",
+     "measured": true,
+     "src": "page cache warm, 2026-11-21"
+    },
+    "decode_tps": {
+     "v": 54.0,
+     "measured": true,
+     "src": "two runs 54.08 / 53.91, 128 tokens after a 24-token prompt"
+    },
+    "prefill_tps": {
+     "v": 1157.8,
+     "measured": true,
+     "src": "4,622-token cold prompt, two runs 1157.8 / 1157.7"
+    },
+    "decode_4k_tps": {
+     "v": 46.4,
+     "measured": true,
+     "src": "decode after the 4.6k prefill, two runs 46.41 / 46.42"
+    },
+    "prefill_30k_tps": {
+     "v": 1175.6,
+     "measured": true,
+     "src": "~30k-token cold prompt, two runs 1175.6 / 1175.5"
+    },
+    "decode_30k_tps": {
+     "v": 45.1,
+     "measured": true,
+     "src": "decode after the 30k prefill, two runs 44.50 / 45.71"
+    },
+    "context": {
+     "v": 32768,
+     "unit": "tokens",
+     "measured": true,
+     "src": "llama-server -c 32768, 30k-token prompt served"
+    },
+    "placement": {
+     "v": "-ncmoe 2 + moe-cache auto, b 2048 / ub 512, KV q8_0, mmap, lazy on",
+     "measured": true,
+     "src": "the config measured on 2026-11-21"
+    },
+    "engine": {
+     "v": "beellama sm_80 clean build, release collabosm-a100-clean-20261121",
+     "measured": true,
+     "src": "release tag and the zip downloaded by the recipe"
+    }
    }
   },
   {
@@ -1053,7 +1120,7 @@
    "env": {
     "LLAMA_FILE": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
     "LLAMA_EXTRA_FILES": "Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
-    "LLAMA_CONTEXT": 8192,
+    "LLAMA_CONTEXT": 32768,
     "TIER_S_CTX": 0,
     "TIER_M_CTX": 0,
     "LLAMA_KV_TYPE": "q8_0",
@@ -1070,15 +1137,15 @@
     "ASSIGN_RETRY_DELAY": 15,
     "LLAMA_GPU_LAYERS": 99,
     "LLAMA_FIT": "off",
-    "LLAMA_MOE_CACHE_MIB": 0,
+    "LLAMA_MOE_CACHE_MIB": -1,
     "LLAMA_VRAM_RESERVE_MIB": 1536,
     "LLAMA_CACHE_RAM": 512,
     "LLAMA_SLOT_SAVE_MAX_MB": 1024,
-    "LLAMA_BATCH": 512,
-    "LLAMA_UBATCH": 128,
+    "LLAMA_BATCH": 2048,
+    "LLAMA_UBATCH": 512,
     "COLLABOSM_INITIAL_WAIT_S": 60,
     "LLAMA_FIT_TARGET": 4096,
-    "LLAMA_N_CPU_MOE": 8,
+    "LLAMA_N_CPU_MOE": 2,
     "FALLBACK_ACCELERATORS": ""
    }
   }
