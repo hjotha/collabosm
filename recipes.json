@@ -140,23 +140,23 @@
     }
    }
   },
- {
-  "id": "tpu-v6e-1",
-  "card": "TPU v6e-1",
-  "accelerator": "V6E1",
-  "shape": "st",
-  "vram_gb": 32,
-  "min_vram_gib": 0,
-  "ram_gb": 173,
-  "cu_per_hour": 3.71,
-  "facts": {
-   "cu_per_hour": {
-    "v": 3.71,
-    "measured": false,
-    "src": "Public Colab High-RAM observation: https://www.gkbrk.com/google-colab"
+  {
+   "id": "tpu-v6e-1",
+   "card": "TPU v6e-1",
+   "accelerator": "V6E1",
+   "shape": "st",
+   "vram_gb": 32,
+   "min_vram_gib": 0,
+   "ram_gb": 173,
+   "cu_per_hour": 3.71,
+   "facts": {
+    "cu_per_hour": {
+     "v": 3.71,
+     "measured": false,
+     "src": "Public Colab High-RAM observation: https://www.gkbrk.com/google-colab"
+    }
    }
   }
- }
  ],
  "models": [
   {
@@ -323,19 +323,19 @@
    "recurrent": true,
    "bytes": 66423878624
   },
- {
-  "id": "qwen38-27b-mashbox",
-  "name": "Qwen3.8-27B",
-  "short": "MASHBOX BQ8_R",
-  "params": "27B",
-  "quant": "BSHJ BQ8_R",
-  "engine": "mashbox",
-  "repo": "mashbox-labs/Qwen3.8-27B-TPU",
-  "revision": "98139d38b39dd1223c102ef008e6b0968a903aae",
-  "dir": "/content/mashbox-cache",
-  "served_id": "qwen3-8-27b",
-  "vision": false
- }
+  {
+   "id": "qwen38-27b-mashbox",
+   "name": "Qwen3.8-27B",
+   "short": "MASHBOX BQ8_R",
+   "params": "27B",
+   "quant": "BSHJ BQ8_R",
+   "engine": "mashbox",
+   "repo": "mashbox-labs/Qwen3.8-27B-TPU",
+   "revision": "98139d38b39dd1223c102ef008e6b0968a903aae",
+   "dir": "/content/mashbox-cache",
+   "served_id": "qwen3-8-27b",
+   "vision": false
+  }
  ],
  "recipes": [
   {
@@ -1214,6 +1214,11 @@
      "v": "beellama sm_80 clean build, release collabosm-a100-clean-20261121",
      "measured": true,
      "src": "release tag and the zip this recipe downloads; the newer parity2 zip is not used until its benchmark validates it"
+    },
+    "vram_note": {
+     "v": "cache 4096 + sidecar Q4_K_M reaches 40404 MiB and OOMs on the first MTP request on the 40G; mtp4 fails at load; next test uses auto (-1) + reserve 4096 or a 2048 MiB cache",
+     "measured": true,
+     "src": "A100-40G parity bench, 2026-11-21"
     }
    },
    "why": {
@@ -1258,31 +1263,31 @@
     "FALLBACK_ACCELERATORS": ""
    }
   },
- {
-  "id": "tpu-v6e-1/qwen38-27b-mashbox",
-  "gpu": "tpu-v6e-1",
-  "model": "qwen38-27b-mashbox",
-  "status": "unmeasured",
-  "eta_min": 15,
-  "env": {
-   "MASHBOX_VERSION": "0.1.15",
-   "MASHBOX_CONTEXT": 32768,
-   "CACHE_SIZE": 32768,
-   "CONCURRENCY": 1,
-   "WAIT_MIN": 25,
-   "COLLABOSM_READINESS_CONTENTS": 1
-  },
-  "why": {
-   "en": "Single-chip TPU recipe for text coding, with one 32K slot."
-  },
-  "facts": {
-   "weights": {
-    "v": 25.1,
-    "unit": "GiB",
-    "measured": false,
-    "src": "26.94 GB per MASHBOX model card"
+  {
+   "id": "tpu-v6e-1/qwen38-27b-mashbox",
+   "gpu": "tpu-v6e-1",
+   "model": "qwen38-27b-mashbox",
+   "status": "unmeasured",
+   "eta_min": 15,
+   "env": {
+    "MASHBOX_VERSION": "0.1.15",
+    "MASHBOX_CONTEXT": 32768,
+    "CACHE_SIZE": 32768,
+    "CONCURRENCY": 1,
+    "WAIT_MIN": 25,
+    "COLLABOSM_READINESS_CONTENTS": 1
+   },
+   "why": {
+    "en": "Single-chip TPU recipe for text coding, with one 32K slot."
+   },
+   "facts": {
+    "weights": {
+     "v": 25.1,
+     "unit": "GiB",
+     "measured": false,
+     "src": "26.94 GB per MASHBOX model card"
+    }
    }
   }
- }
  ]
 }
