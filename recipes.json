@@ -818,10 +818,11 @@
    "env": {
     "LLAMA_FILE": "Swift-1.5-Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
     "LLAMA_CONTEXT": 262144,
-    "TIER_S_CTX": 196608,
-    "TIER_M_CTX": 229376,
+    "TIER_S_CTX": 0,
+    "TIER_M_CTX": 0,
     "LLAMA_KV_TYPE": "kvarn4",
     "LLAMA_SPEC_KV_TYPE": "kvarn4",
+    "LLAMA_MTP_DRAFT": 2,
     "LLAMA_MTP_DRAFT_L": 2,
     "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-8454da237/beellama-a100-cuda.zip",
     "LLAMA_HF_THREADS": 16,
