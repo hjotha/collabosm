@@ -1,0 +1,9 @@
+ggml_cuda_init: found 1 CUDA devices:
+llama_context: n_ctx         = 32768
+llama_context: n_batch       = 2048
+llama_context: n_ubatch      = 512
+llama_context: MoE cache auto: 17408.25 MiB of host experts, but only 100.00 MiB of device memory is free after the compute buffers (reserve 1536.00 MiB), cache disabled
+llama_context: graph nodes  = 3210
+llama_context: graph splits = 97
+srv  update_slots: all slots are idle
+srv  operator(): cleaning up before exit...

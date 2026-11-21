@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# the sample logs are fixtures for --self-test, not run output
+!examples/*.log

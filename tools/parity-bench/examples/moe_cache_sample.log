@@ -1,0 +1,40 @@
+ggml_cuda_init: found 1 CUDA devices:
+  Device 0: NVIDIA A100-SXM4-40GB, compute capability 8.0, VMM: yes
+llama_model_loader: loaded meta data with 71 key-value pairs and 1073 tensors from /content/fn40/real/Q2_0/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+llama_model_loader: - kv   0:                       general.architecture str              = qwen3moe
+llama_model_loader: - kv   1:                               general.name str              = Qwen3.8-Flash-Next
+llama_model_loader: - kv   2:                     qwen3moe.expert_used_count u32              = 8
+llama_model_loader: - kv   3:                          qwen3moe.expert_count u32              = 128
+llama_model_loader: - type  f32:  521 tensors
+llama_model_loader: - type q2_0:  552 tensors
+llm_load_tensors: offloading 62 repeating layers to GPU
+llm_load_tensors: offloaded 62/62 layers to GPU
+llm_load_tensors:      CUDA0 model buffer size = 18432.00 MiB
+llm_load_tensors:   CUDA_Host model buffer size = 17408.25 MiB
+....................................................................................
+llama_context: constructing llama_context
+llama_context: n_ctx         = 32768
+llama_context: n_batch       = 2048
+llama_context: n_ubatch      = 512
+llama_context: flash_attn    = enabled
+llama_context: MoE cache auto: 6144.00 MiB for 17408.25 MiB of host experts (35.3% of the experts can be cached)
+llama_moe_cache: CUDA0 MoE cache size =  6144.00 MiB for 17408.25 MiB of host experts
+llama_moe_cache:  30 layers, iq3_xxs:  1824 slots (12.7%)
+llama_context: MoE cache plan: CUDA0 = 6144.00 MiB
+llama_context:      CUDA0 compute buffer size =  1024.00 MiB
+llama_context:  CUDA_Host compute buffer size =    64.00 MiB
+llama_context: graph nodes  = 3210
+llama_context: graph splits = 97
+srv  load_model: model loaded
+srv  update_slots: all slots are idle
+srv  params_from_: Chat format: peg-native
+slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+slot update_slots: id  0 | task 0 | new prompt, n_ctx_slot = 32768, n_keep = 0, task.n_tokens = 28614
+slot update_slots: id  0 | task 0 | prompt processing done, n_past = 28614
+slot update_slots: id  0 | task 0 | generated 128 tokens
+slot      release: id  0 | task 0 | stop processing: n_past = 28742, truncated = 0
+srv  update_slots: all slots are idle
+srv  operator(): cleaning up before exit...
+llama_moe_cache: ubatch <= 8: hits = 372, misses = 169, hit rate = 68.76%, uploaded = 120.50 MiB
+llama_moe_cache: ubatch  > 8: hits = 96, misses = 512, hit rate = 15.79%, uploaded = 3400.00 MiB
+llama_moe_cache: large batches: 96 experts copied from the cache, 3400.00 MiB

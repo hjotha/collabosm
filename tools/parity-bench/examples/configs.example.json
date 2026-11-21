@@ -1,0 +1,14 @@
+[
+  {"name": "base-f16", "bin_dir": "/content/pb-base/bin", "kv": "f16",
+   "moe_cache_mib": 6144, "batch": 2048, "ubatch": 512, "ctx": 32768,
+   "n_cpu_moe": 2, "lazy_mode": "on"},
+
+  {"name": "new-f16", "bin_dir": "/content/pb-new/bin", "kv": "f16",
+   "moe_cache_mib": 6144, "batch": 2048, "ubatch": 512, "ctx": 32768,
+   "n_cpu_moe": 2, "lazy_mode": "on"},
+
+  {"name": "new-q8-auto", "bin_dir": "/content/pb-new/bin", "kv": "q8_0",
+   "moe_cache_mib": -1, "vram_reserve_mib": 1536, "batch": 2048,
+   "ubatch": 512, "ctx": 32768, "n_cpu_moe": 2, "lazy_mode": "on",
+   "extra_args": ["--metrics"]}
+]
