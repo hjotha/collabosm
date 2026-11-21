@@ -1140,7 +1140,8 @@
     "LLAMA_FIT_TARGET": 4096,
     "FALLBACK_ACCELERATORS": "",
     "LLAMA_N_CPU_MOE": 2,
-    "LLAMA_MOE_CACHE_PREFILL": 1
+    "LLAMA_MOE_CACHE_PREFILL": 1,
+    "LLAMA_MOE_MAP_DEVICE": 1
    },
    "facts": {
     "cu_per_hour": {
@@ -1152,7 +1153,7 @@
      "v": 37488,
      "unit": "MiB",
      "measured": true,
-     "src": "A100 parity5, 2 runs, cache 6144 + PREFILL=1, q8_0 KV"
+     "src": "A100 parity5, m1 (PREFILL=1 + MAP_DEVICE=1), 2 runs, c8_0 KV"
     },
     "weights": {
      "v": 66.4,
@@ -1167,29 +1168,29 @@
      "src": "page cache warm, 2 runs"
     },
     "decode_tps": {
-     "v": 56.76,
+     "v": 59.72,
      "measured": true,
-     "src": "2-run median, 24-token prompt / 128 out"
+     "src": "2-run median, short prompt, m1"
     },
     "prefill_tps": {
-     "v": 1556.8,
+     "v": 1565.4,
      "measured": true,
-     "src": "2-run median, 4,622-token cold prompt"
+     "src": "2-run median, 4.6k prompt, m1"
     },
     "decode_4k_tps": {
-     "v": 47.14,
+     "v": 46.77,
      "measured": true,
-     "src": "2-run median, decode after the 4.6k prefill"
+     "src": "2-run median, decode after 4.6k, m1"
     },
     "prefill_30k_tps": {
-     "v": 1567.4,
+     "v": 1574.0,
      "measured": true,
-     "src": "2-run median, 28,542-token cold prompt"
+     "src": "2-run median, 28.5k prompt, m1"
     },
     "decode_30k_tps": {
-     "v": 44.11,
+     "v": 44.4,
      "measured": true,
-     "src": "2-run median, decode after the 28.5k prefill"
+     "src": "2-run median, decode after 28.5k, m1"
     },
     "context": {
      "v": 32768,
@@ -1198,9 +1199,9 @@
      "src": "llama-server -c 32768, 30k-token prompt served"
     },
     "placement": {
-     "v": "-ncmoe 2 + 6144 MiB MoE cache with LLAMA_MOE_CACHE_PREFILL=1, b 2048 / ub 1024, KV q8_0, mmap, lazy on",
+     "v": "-ncmoe 2 + 6144 MiB MoE cache, LLAMA_MOE_CACHE_PREFILL=1 and LLAMA_MOE_MAP_DEVICE=1, b2048/ub1024, KV q8_0, mmap/lazy on",
      "measured": true,
-     "src": "A100 flag A/B 2026-11-21"
+     "src": "A100 flag A/B 2026-11-21, best no-spec tps"
     },
     "engine": {
      "v": "beellama sm_80 clean build, release collabosm-a100-clean-20261121",
@@ -1249,7 +1250,8 @@
     "LLAMA_FIT_TARGET": 4096,
     "FALLBACK_ACCELERATORS": "",
     "LLAMA_N_CPU_MOE": 2,
-    "LLAMA_MTP_RESERVE_WEIGHTS": 1
+    "LLAMA_MTP_RESERVE_WEIGHTS": 1,
+    "LLAMA_MTP_KV_STORE_ONLY": 1
    },
    "facts": {
     "weights": {
@@ -1264,9 +1266,9 @@
      "src": "Hugging Face LFS metadata at pinned revision f5d175de2cf7f720d45d6064019a81fcf056e986; HEAD and x-linked-size checked 2026-11-21"
     },
     "draft": {
-     "v": "draft-mtp, n-max 2, draft KV q8_0, auto cache (-1) + reserve 4096, RESERVE_WEIGHTS=1",
+     "v": "draft-mtp, n-max 2, draft KV q8_0, auto cache (-1) + reserve 4096, RESERVE_WEIGHTS=1, KV_STORE_ONLY=1",
      "measured": true,
-     "src": "A100 flag A/B 2026-11-21"
+     "src": "A100 parity5 2026-11-21, best decode"
     },
     "context": {
      "v": 32768,
@@ -1285,7 +1287,7 @@
      "src": "release tag and the zip this recipe downloads; the newer parity2 zip is not used until its benchmark validates it"
     },
     "vram_note": {
-     "v": "fixed cache 2048/4096 OOMs on the first request; auto (-1) + reserve 4096 with RESERVE_WEIGHTS=1 works at 39,052 ready / 39,740 peak; the original sidecar only",
+     "v": "fixed cache 2048/4096 OOMs; auto (-1) + reserve 4096 with RESERVE_WEIGHTS=1 and KV_STORE_ONLY=1 works at 39,052 ready / 39,736 peak; original sidecar only",
      "measured": true,
      "src": "A100 parity5 2026-11-21"
     },
@@ -1293,35 +1295,35 @@
      "v": 39052,
      "unit": "MiB",
      "measured": true,
-     "src": "A100 parity5, MTP sidecar, auto cache + reserve 4096 + RESERVE_WEIGHTS=1; peak 39,740"
+     "src": "A100 parity5, MTP store-on, auto + reserve 4096; peak 39,736"
     },
     "decode_tps": {
-     "v": 59.95,
+     "v": 56.8,
      "measured": true,
-     "src": "2-run median, short prompt, with the reserve enabled"
+     "src": "2-run median, short prompt, MTP store-on (adaptive warmup)"
     },
     "decode_4k_tps": {
-     "v": 64.77,
+     "v": 65.66,
      "measured": true,
-     "src": "2-run median, decode after 4.6k; no-spec 47.14"
+     "src": "2-run median, decode after 4.6k, MTP store-on; no-spec 46.77"
     },
     "decode_30k_tps": {
-     "v": 57.7,
+     "v": 58.53,
      "measured": true,
-     "src": "2-run median, decode after 28.5k; no-spec 44.11"
+     "src": "2-run median, decode after 28.5k, MTP store-on; no-spec 44.40"
     },
     "prefill_tps": {
-     "v": 1234.6,
+     "v": 1241.9,
      "measured": true,
-     "src": "2-run median, 4.6k prompt; no-spec 1556.8 (-21%, the nextn head)"
+     "src": "2-run median, 4.6k prompt, MTP store-on; no-spec 1565.4"
     },
     "prefill_30k_tps": {
-     "v": 1292.3,
+     "v": 1311.6,
      "measured": true,
-     "src": "2-run median, 28.5k prompt; no-spec 1567.4"
+     "src": "2-run median, 28.5k prompt, MTP store-on; no-spec 1574.0"
     },
     "acceptance": {
-     "v": "~80% (per-request 0.62-0.81 in the parity5 run; 80.7% aggregate earlier)",
+     "v": "~80% (per-request 0.62-0.81; 80.7% aggregate earlier)",
      "measured": true,
      "src": "llama-server draft acceptance logs"
     },
