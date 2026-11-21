@@ -313,6 +313,21 @@ def _parse_sessions(out: str) -> list:
     return found
 
 
+def _session_order_key(session):
+    """Order server sessions by machine capacity (ascending VRAM)."""
+    hw = str((session or {}).get("hardware") or "").upper()
+    if "V6" in hw or hw.startswith("TPU"):
+        hw = "V6E1"
+    best = 0.0
+    for gpu in REGISTRY.get("gpus", []):
+        if str(gpu.get("accelerator") or "").upper() == hw:
+            try:
+                best = max(best, float(gpu.get("vram_gb") or 0))
+            except (TypeError, ValueError):
+                pass
+    return (0 if best else 1, best, str((session or {}).get("name") or ""))
+
+
 def _num(text: str):
     try:
         return float(text)
@@ -2154,6 +2169,7 @@ class Control:
                                       and s.get("endpoint") == self.known_endpoint)
                 if named and s.get("endpoint"):
                     named_ep = s["endpoint"]
+            sessions.sort(key=_session_order_key)
             if any(s["ours"] for s in sessions):
                 self.absent_since = None
             elif self.absent_since is None:
