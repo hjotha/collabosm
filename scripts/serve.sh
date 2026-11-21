@@ -65,8 +65,8 @@ else
   PROC='/content/api_server.py'
 fi
 
-polls=600
-[[ "${ENGINE:-exl3}" == "maya" ]] && polls=900  # first Maya-L expert-tier warm-up took ~8 min once
+polls=1200
+[[ "${ENGINE:-exl3}" =~ ^(maya|llama|beellama)$ ]] && polls=1800  # first Maya-L expert-tier warm-up took ~8 min once
 for _ in $(seq 1 "$polls"); do
   code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 "http://127.0.0.1:$PORT/health" || true)
   [[ "$code" == "200" ]] && break
