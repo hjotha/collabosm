@@ -232,12 +232,14 @@
    "ngram": true,
    "recurrent": true,
    "strata": {
-    "repo": "https://github.com/Niko1221/Strata",
-    "commit": "fb58e0dbc8399662c0e47c76578c6e878b14f6cf",
-    "build": true,
-    "cuda": "auto",
+    "repo": "https://github.com/hjotha/Strata",
+    "commit": "92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27",
+    "build": false,
+    "cuda": "13",
     "quant": "IQ3_S",
-    "dir": "/content/strata-v0.1.41"
+    "dir": "/content/strata-v0.1.65-hjotha",
+    "release": "https://github.com/hjotha/Strata/releases/download/collabosm-strata-a100-20261122/",
+    "sha256": "a62b39f7f0beaf91c9c091aa36fb9a792806a23787596a2be5dd82ec91a2e8af"
    }
   },
   {
@@ -599,12 +601,13 @@
    "id": "a100-40g/qwen38-fn-strata",
    "gpu": "a100-40g",
    "model": "qwen38-fn-strata",
-   "status": "verified",
+   "status": "experimental",
    "eta_min": 40,
    "env": {
     "STRATA_CONTEXT": 262144,
     "STRATA_KV": "int8",
-    "BEELLAMA_ZIP_URL": "https://github.com/hjotha/beellama.cpp/releases/download/collabosm-a100-clean-20261121/beellama-a100-clean.zip"
+    "STRATA_HF_STREAM": "1",
+    "STRATA_HF_STREAM_URL": "https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF/resolve/2a55d75962e22f7a4a1d9963ab6eae3678537831/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
    },
    "facts": {
     "weights": {
@@ -614,9 +617,9 @@
      "src": "83.6 GB on Hugging Face: two IQ3_S shards (3.50 bpw on average; GSQ-RCO picks each tensor's type, the experts mixing Q2_0 and IQ4_NL by layer) with the 28.8 GB n-gram table; ISTA-DASLab, Apache-2.0. Their benchmarks put it level with BF16 (AIME25, GPQA-Diamond, LiveCodeBench v6: 93.26 vs 93.12)"
     },
     "engine_version": {
-     "v": "0.1.41",
-     "measured": true,
-     "src": "2026-10-10 A100-SXM4-40GB trial: official source commit fb58e0dbc8399662c0e47c76578c6e878b14f6cf; CUDA 13 source build with driver 580.82.07; engine SHA-256 81c5e113c48292a723d2cb4ff2613d7be4a79ee559f32292cd6ff07670e10271 (see docs/MEASURED.md). Existing GGUF revision 2a55d75962e22f7a4a1d9963ab6eae3678537831 was reused; engine-only update."
+     "v": "0.1.65",
+     "measured": false,
+     "src": "2026-11-22 fork build github.com/hjotha/Strata commit 92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27 (base 0.1.65), prebuilt zip sha256 a62b39f7f0beaf91c9c091aa36fb9a792806a23787596a2be5dd82ec91a2e8af, sm_80+sm_89 CUDA 13.4, Ubuntu 24.04 glibc. Adds opt-in --hf-stream-vram; the A100 numbers in this card were measured on 0.1.41 and have not been re-run."
     },
     "prefill_tps": {
      "v": 1320.9,
@@ -670,6 +673,11 @@
      "v": true,
      "measured": true,
      "src": "v0.1.41 extra-smoke-v2 validated a function tool probe and full function-call roundtrip (report_answer returned exact text 42)."
+    },
+    "engine_version_0_1_41": {
+     "v": "0.1.41",
+     "measured": true,
+     "src": "2026-10-10 A100-SXM4-40GB trial: official source commit fb58e0dbc8399662c0e47c76578c6e878b14f6cf; CUDA 13 source build with driver 580.82.07; engine SHA-256 81c5e113c48292a723d2cb4ff2613d7be4a79ee559f32292cd6ff07670e10271 (see docs/MEASURED.md). Existing GGUF revision 2a55d75962e22f7a4a1d9963ab6eae3678537831 was reused."
     }
    }
   },

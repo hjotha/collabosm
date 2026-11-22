@@ -456,7 +456,7 @@ What you get:
 - **Qwen3.8-Flash-Next on the A100-40G, with [Strata](https://github.com/Niko1221/Strata)**
   - The same model on the smaller, cheaper card: it does not fit there, so Strata keeps the parts
     it cannot hold on the GPU in the machine's memory and has the processor work them out.
-  - Strata v0.1.41 on an A100-SXM4-40GB read 1,321–2,567 tokens/s across tested prompts of
+  - Strata 0.1.41 (the last A100 run; the recipe now uses the 0.1.65 fork build below) read 1,321–2,567 tokens/s across tested prompts of
     12,878–110,921 tokens; 512-token decode probes were 87.6 tokens/s after 2,900 input tokens
     and 93.0 after 21,672. The historical v0.1.24 references were 58.8 and 66.1 tokens/s at
     different contexts/texts, so the apparent +41–49% decode change is not a same-box A/B result.
@@ -464,16 +464,18 @@ What you get:
   - Length: conversations up to about 260,000 tokens.
   - Pictures: understood.
   - The chat page, ModelDock, and other clients can use the tested chat-completions and Responses
-    paths. v0.1.41 passed text, vision, function-tool round-trip, and Responses
+    paths. 0.1.41 passed text, vision, function-tool round-trip, and Responses
     completion/streaming checks. It exposes the Responses path Codex needs, but a full Codex
     `apply_patch` workflow has not been tested on this recipe. Responses is stateless full-history:
     response-ID retrieval/continuation, cancel, and compact operations are not supported.
     Concurrency was not measured.
-  - The v0.1.41 recipe pins official Strata source commit
-    `fb58e0dbc8399662c0e47c76578c6e878b14f6cf` and builds the engine on the VM; the pinned
-    84 GB model revision is unchanged. The trial reached Ready about 29 minutes after A100
-    assignment; the UI uses a conservative 40-minute estimate because Colab scheduling and source
-    builds vary. The previous ~20-minute estimate described the prebuilt v0.1.24 path and is stale.
+  - The recipe now pins the fork commit
+    `92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27` of `github.com/hjotha/Strata` (0.1.65) and
+    downloads a prebuilt CUDA 13 zip (sm_80 + sm_89, Ubuntu 24.04) instead of compiling on the VM.
+    It adds the opt-in `--hf-stream-vram` path: the engine fetches the 54.8 GB metadata shard over
+    HTTP Range and feeds the dense/head/expert profile fill as the bytes arrive. The A100 speeds
+    above are still 0.1.41 measurements; this build has not been re-run on an A100, so the recipe
+    is marked experimental. The 84 GB model revision is unchanged.
 
 ### C. The command line
 
