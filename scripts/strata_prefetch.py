@@ -54,9 +54,11 @@ def fetch(url: str, start: int, end: int, attempts: int = 4) -> bytes:
         })
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
-                data = r.read()
                 if r.status != 206 and not (r.status == 200 and start == 0):
                     raise RuntimeError("HTTP %s for bytes %d-%d" % (r.status, start, end - 1))
+                # read only what was asked: a server that ignored Range (200) would otherwise stream the
+                # whole 55 GB shard into memory before the length check below.
+                data = r.read(end - start)
                 if len(data) != end - start:
                     raise RuntimeError("short range: %d of %d bytes" % (len(data), end - start))
                 return data
