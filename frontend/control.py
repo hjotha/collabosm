@@ -889,7 +889,9 @@ class Control:
                 proc.terminate()
             except Exception:
                 pass
-        threading.Thread(target=self._do_stop, args=(reason, cu), daemon=True).start()
+        threading.Thread(target=self._do_stop, args=(reason,),
+                         kwargs={"endpoint": target_ep or None, "starting": running_job},
+                         daemon=True).start()
         return {"ok": True, "code": "stopping", "reason": reason, "cu": round(cu, 3)}
 
     @account_operation
@@ -1189,41 +1191,41 @@ class Control:
         return "COLLABOSM_STOP_OK" in out.splitlines()
 
     def _do_stop_target(self, target: dict, reason: str) -> None:
-        if not self._run_down_session("tcb-stop-%d" % int(time.time()), target.get("endpoint")):
-            with self.lock:
-                self.state.update(stage="failed", note=_note("fail.stop"),
-                                  foot=_note("foot.control"))
-            self._log("!! targeted stop could not be verified; the VM may still be billing")
-            self._probe_sessions()
-            self._balance_soon()
-            return
-        cu = self._close_session(reason)
-        with self.lock:
-            self._let_go()
-            self.state.update(stage="stopped", progress=0.0,
-                              note=_note("stopped", reason=reason, cu=round(cu, 2)),
-                              foot=_note("foot.stopped", reason=reason))
-        self._refresh_money()
-        self._probe_sessions()
-        self._balance_soon()
+        endpoint = target["endpoint"]
+        stopped = self._run_down_session("tcb-stop-%d" % int(time.time()), endpoint)
+        self._finish_stop(reason, stopped, self._probe_sessions(), endpoint)
 
-    def _do_stop(self, reason: str, cu: float) -> None:
-        if not self._run_down():
+    def _do_stop(self, reason: str, *, endpoint: str | None = None, starting: bool = False) -> None:
+        endpoint = endpoint or self.known_endpoint
+        if starting and not endpoint:
+            # A cancelled assignment can appear after a name-only stop has returned.
+            sessions = self._probe_sessions()
+            endpoint = next((s["endpoint"] for s in sessions or [] if s.get("ours") and s.get("endpoint")), None)
+            if not endpoint:
+                self._finish_stop(reason, False, sessions)
+                return
+        stopped = self._run_down(endpoint=endpoint)
+        self._finish_stop(reason, stopped, self._probe_sessions(), endpoint)
+
+    def _finish_stop(self, reason: str, stopped: bool, sessions: list | None, endpoint: str | None = None) -> None:
+        # Publish the terminal stage only after status has the fresh billing list.
+        if endpoint:
+            remaining = any(s.get("endpoint") == endpoint for s in sessions or [])
+        else:
+            remaining = any(s.get("ours") or s.get("name") in (None, "?") for s in sessions or [])
+        if not stopped or sessions is None or remaining:
             with self.lock:
                 self.state.update(stage="failed", note=_note("fail.stop"),
                                   foot=_note("foot.control"))
             self._log("!! stop could not be confirmed; the VM may still be billing")
-            self._probe_sessions()
-            self._balance_soon()
-            return
-        cu = self._close_session(reason)
-        with self.lock:
-            self._let_go()
-            self.state.update(stage="stopped", progress=0.0,
-                              note=_note("stopped", reason=reason, cu=round(cu, 2)),
-                              foot=_note("foot.stopped", reason=reason))
-        self._refresh_money()
-        self._probe_sessions()
+        else:
+            cu = self._close_session(reason)
+            with self.lock:
+                self._let_go()
+                self.state.update(stage="stopped", progress=0.0,
+                                  note=_note("stopped", reason=reason, cu=round(cu, 2)),
+                                  foot=_note("foot.stopped", reason=reason))
+            self._refresh_money()
         self._balance_soon()
 
     def _fail(self, note: dict, why: str, vm_possible: bool = True, stop_endpoint=None) -> None:
@@ -2159,6 +2161,8 @@ class Control:
     def _probe_sessions(self):
         """What the server says is billing, parsed properly, with ours marked --
         or None when `colab sessions` did not answer, which is not "none"."""
+        with self.lock:
+            epoch = self.epoch
         if self.fake:
             live = bool(self.fake_vm) and not self.fake_vm_down
             sessions = ([{"name": self.session, "endpoint": "rehearsal-a100-hm-0",
@@ -2176,6 +2180,8 @@ class Control:
         if not answered:
             # keep the last answer on the rail: a count of 0 here would be a lie
             with self.lock:
+                if epoch != self.epoch:
+                    return None
                 self.state["billing"].update(raw=raw, checked_at=time.time(), ok=False)
                 first = not self.sessions_failed
                 self.sessions_failed = True
@@ -2186,6 +2192,8 @@ class Control:
         now = time.time()
         named_ep = None
         with self.lock:
+            if epoch != self.epoch:
+                return None             # a stop or new launch invalidated this listing
             self.sessions_failed = False
             for s in sessions:
                 s["hardware"] = _display_hardware(s.get("hardware"))

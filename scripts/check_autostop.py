@@ -45,13 +45,14 @@ class Tests(unittest.TestCase):
         c = control.Control.__new__(control.Control)
         c.lock = threading.RLock()
         c.state = {'stage': 'stopping'}
+        c.known_endpoint = None
         c._run_down = Mock(return_value=False)
         c._close_session = Mock()
         c._let_go = Mock()
         c._log = Mock()
-        c._probe_sessions = Mock()
+        c._probe_sessions = Mock(return_value=[])
         c._balance_soon = Mock()
-        c._do_stop('manual', 0.1)
+        c._do_stop('manual')
         self.assertEqual(c.state['stage'], 'failed')
         self.assertEqual(c.state['note']['k'], 'fail.stop')
         c._close_session.assert_not_called()
@@ -61,15 +62,53 @@ class Tests(unittest.TestCase):
         c = control.Control.__new__(control.Control)
         c.lock = threading.RLock()
         c.state = {'stage': 'stopping'}
+        c.known_endpoint = None
         c._run_down = Mock(return_value=True)
         c._close_session = Mock(return_value=0.1)
         c._let_go = Mock()
         c._refresh_money = Mock()
-        c._probe_sessions = Mock()
+
+        def probe():
+            self.assertEqual(c.state['stage'], 'stopping')
+            return []
+
+        c._probe_sessions = Mock(side_effect=probe)
         c._balance_soon = Mock()
-        c._do_stop('manual', 0.0)
+        c._do_stop('manual')
         self.assertEqual(c.state['stage'], 'stopped')
         c._close_session.assert_called_once_with('manual')
+
+    def test_manual_stop_requires_a_valid_listing_without_our_endpoint(self):
+        for sessions in (None, [{'endpoint': 't4-vm', 'ours': False}]):
+            with self.subTest(sessions=sessions):
+                c = control.Control.__new__(control.Control)
+                c.lock = threading.RLock()
+                c.state = {'stage': 'stopping'}
+                c.known_endpoint = 't4-vm'
+                c._run_down = Mock(return_value=True)
+                c._close_session = Mock(return_value=0.0)
+                c._let_go = Mock()
+                c._log = Mock()
+                c._probe_sessions = Mock(return_value=sessions)
+                c._balance_soon = Mock()
+                c._do_stop('manual')
+                self.assertEqual(c.state['stage'], 'failed')
+                c._close_session.assert_not_called()
+
+    def test_cancelling_provisioning_without_an_endpoint_cannot_confirm_a_stop(self):
+        c = control.Control.__new__(control.Control)
+        c.lock = threading.RLock()
+        c.state = {'stage': 'stopping'}
+        c.known_endpoint = None
+        c._probe_sessions = Mock(return_value=[])
+        c._run_down = Mock()
+        c._close_session = Mock()
+        c._log = Mock()
+        c._balance_soon = Mock()
+        c._do_stop('manual', starting=True)
+        self.assertEqual(c.state['note']['k'], 'fail.stop')
+        c._run_down.assert_not_called()
+        c._close_session.assert_not_called()
 
     def test_down_refuses_wrong_endpoint(self):
         args = types.SimpleNamespace(session='collabosm', endpoint='new-vm')
@@ -97,6 +136,31 @@ class Tests(unittest.TestCase):
             self.assertEqual(provision.cmd_down(args), 0)
             self.assertEqual(colab.call_args_list[0].args[0], ['stop', '-s', 'collabosm'])
             self.assertIn('COLLABOSM_STOP_OK', output.getvalue())
+
+    def test_down_cannot_confirm_stop_of_an_unregistered_vm(self):
+        args = types.SimpleNamespace(session='collabosm', endpoint=None)
+        listed = '[?] t4-vm | Hardware: T4 | Variant: GPU'
+
+        def colab_command(argv, timeout):
+            if argv == ['sessions']:
+                return 0, listed
+            self.assertEqual(argv, ['stop', '-s', 'collabosm'])
+            return 0, "[colab] Session 'collabosm' not found."
+
+        with patch.object(provision, 'colab', side_effect=colab_command), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(provision.cmd_down(args), 1)
+            self.assertNotIn('COLLABOSM_STOP_OK', output.getvalue())
+
+    def test_name_only_stop_detects_target_even_if_the_name_disappears(self):
+        args = types.SimpleNamespace(session='collabosm', endpoint=None)
+        with patch.object(provision, 'run', return_value=(0, 'KEEPALIVE ok new-vm')), \
+             patch.object(provision, 'colab', side_effect=[
+                 (0, '[collabosm] new-vm | Hardware: T4'),
+                 (0, '[colab] Session terminated.'),
+                 (0, '  [?] new-vm | Hardware: T4')]), \
+             contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(provision.cmd_down(args), 1)
 
 
 if __name__ == '__main__':

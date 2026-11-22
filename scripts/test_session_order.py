@@ -64,6 +64,17 @@ class SessionOrder(unittest.TestCase):
                           "A100 (40/80 GB)", "G4 (96 GB)", "XYZ"])
         self.assertEqual(ctl.state["billing"]["count"], 6)
 
+    def test_probe_started_before_a_stop_does_not_reinstate_the_old_listing(self):
+        ctl = make_control()
+
+        def late_reply(*_args, **_kwargs):
+            ctl.epoch += 1
+            return "[?] gpu-t4-0 | Hardware: T4"
+
+        with patch.object(ctl, "_wsl_run", side_effect=late_reply):
+            self.assertIsNone(ctl._probe_sessions())
+        self.assertEqual(ctl.state["billing"]["sessions"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -72,6 +72,7 @@ DOWN_TRAILER = """
 [down] If an assignment is still listed above, it is still billing.
        A100-80GB High-RAM costs about %s CU/h (~$0.68/h). 200 CU/month ≈ 29.5 h.
        Nothing here keeps a box alive: the frontend pings Colab only while a box is in use."""
+DOWN_SESSION_LINE = re.compile(r"^[ \t]*\[([^\]\r\n]+)\][ \t]+(\S+)[ \t]*\|[ \t]*Hardware:", re.M)
 
 
 # ---- running the Colab CLI ------------------------------------------------------- #
@@ -397,6 +398,11 @@ def cmd_up(a) -> int:
 def cmd_down(a) -> int:
     session = a.session or os.environ.get("SESSION") or "collabosm"
     endpoint = a.endpoint or os.environ.get("ENDPOINT")
+    if not endpoint:
+        # The CLI can drop the local name. Save the endpoint before asking it to stop.
+        rc, out = colab(["sessions"], timeout=30)
+        if rc == 0:
+            endpoint = next((ep for name, ep in DOWN_SESSION_LINE.findall(out) if name == session), None)
     if endpoint:
         # the record first, without a ping: nothing is assigned, nothing is held
         rc, out = run([cli_python(), os.path.join(HERE, "colab_keepalive.py"), "--no-ping",
@@ -416,9 +422,11 @@ def cmd_down(a) -> int:
     rc, out = colab(["sessions"], timeout=120)
     indented(out)
     print(DOWN_TRAILER % (os.environ.get("CU_PER_HOUR") or "6.77"), flush=True)
-    answered = "No active sessions found" in out or bool(re.search(r"^\[.+?\]\s+\S+\s+\|\s+Hardware:", out, re.M))
-    still_listed = ((endpoint and re.search(r"^\[.+?\]\s+" + re.escape(endpoint) + r"\s+\|", out, re.M))
-                    or re.search(r"^\[" + re.escape(session) + r"\]\s+", out, re.M))
+    listed = DOWN_SESSION_LINE.findall(out)
+    answered = bool(listed) or "No active sessions found" in out
+    # With no endpoint, a name-only "not found" can still leave our VM listed as [?].
+    still_listed = any(name == session or ep == endpoint or (not endpoint and name == "?")
+                       for name, ep in listed)
     if stop_rc == 0 and rc == 0 and answered and not still_listed:
         print("COLLABOSM_STOP_OK", flush=True)
         return 0

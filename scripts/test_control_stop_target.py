@@ -38,19 +38,26 @@ class StopTarget(unittest.TestCase):
     def test_targeted_foreign_stop_runs_down_and_reports_stopped(self):
         ctl = make_control()
         run_down = MagicMock(return_value=True)
-        with patch.object(ctl, "_run_down_session", run_down):
+        other = {**FOREIGN, "endpoint": "gpu-other"}
+
+        def probe():
+            self.assertEqual(ctl.state["stage"], "stopping")
+            ctl.state["billing"].update(count=1, sessions=[other])
+            return [other]
+
+        with patch.object(ctl, "_run_down_session", run_down), patch.object(ctl, "_probe_sessions", probe):
             res = ctl.stop("manual", target_session="?", target_endpoint=FOREIGN["endpoint"])
+            self.assertTrue(wait_for(lambda: ctl.state["stage"] == "stopped"),
+                            "stage is %r" % ctl.state.get("stage"))
         self.assertTrue(res.get("ok"))
         self.assertEqual(res.get("code"), "stopping")
         self.assertEqual(res.get("target"), FOREIGN["endpoint"])
-        self.assertTrue(wait_for(lambda: run_down.called),
-                        "targeted stop thread did not run")
+        run_down.assert_called_once()
         args = run_down.call_args[0]
         self.assertTrue(args[0].startswith("tcb-stop-"))
         self.assertNotEqual(args[0], "collabosm")
         self.assertEqual(args[1], FOREIGN["endpoint"])
-        self.assertTrue(wait_for(lambda: ctl.state["stage"] == "stopped"),
-                        "stage is %r" % ctl.state.get("stage"))
+        self.assertEqual(ctl.state["billing"]["sessions"], [other])
 
     def test_unknown_target_is_rejected_without_side_effects(self):
         ctl = make_control()
