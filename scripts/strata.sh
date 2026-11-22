@@ -13,6 +13,9 @@
 
 STRATA_DIR=${STRATA_DIR:-/content/strata}
 STRATA_ENGINE_DIR=/content/strata-engine      # the checked zip; setup.py copies it from here
+# 0.2.16 layout: setup.py, .venv and the run configs live in terminal/, not at the checkout root.
+STRATA_TERMINAL="$STRATA_DIR/terminal"
+[ -d "$STRATA_TERMINAL/serve" ] || STRATA_TERMINAL="$STRATA_DIR"
 
 # Fail before the large GGUF download unless an installed CUDA compiler matches the
 # GPU's driver. Strata's generic installer may otherwise attempt system toolkit setup.
@@ -97,8 +100,8 @@ strata_install() {
   else
     # setup.py keeps an installed engine of the same version, so a new build (the image
     # encoder added, say) would be passed over: the engine the recipe pins is the one there
-    if [ "$(cat "$STRATA_DIR/engine/.collabosm-sha256" 2>/dev/null)" != "$STRATA_SHA256" ]; then
-      rm -rf "$STRATA_DIR/engine"
+    if [ "$(cat "$STRATA_TERMINAL/engine/.collabosm-sha256" 2>/dev/null)" != "$STRATA_SHA256" ]; then
+      rm -rf "$STRATA_TERMINAL/engine"
     fi
     mkdir -p "$STRATA_ENGINE_DIR"
     if ! echo "$STRATA_SHA256  $zip" | sha256sum -c --status - 2>/dev/null; then
@@ -112,7 +115,7 @@ strata_install() {
   # as python3-venv) and otherwise calls `sudo apt-get`. Colab runs as root and has no
   # business being apt-installed into, so the .venv is made here -- setup.sh keeps a
   # .venv that has pip -- with get-pip.py when ensurepip is missing.
-  local venv="$STRATA_DIR/.venv"
+  local venv="$STRATA_TERMINAL/.venv"
   if ! "$venv/bin/python" -m pip --version >/dev/null 2>&1; then
     rm -rf "$venv"
     python3 -m venv "$venv" >/dev/null 2>&1 || {
@@ -139,7 +142,7 @@ strata_install() {
       "${engine_args[@]}" --yes --no-start ) || { say "!! Strata setup failed"; return 1; }
   [ -n "$(strata_config)" ] || { say "!! Strata setup wrote no config"; return 1; }
   if [ "${STRATA_BUILD:-0}" != 1 ]; then
-    echo "$STRATA_SHA256" > "$STRATA_DIR/engine/.collabosm-sha256"
+    echo "$STRATA_SHA256" > "$STRATA_TERMINAL/engine/.collabosm-sha256"
   fi
   strata_engine_args "$(strata_config)" || return 1
 }
@@ -218,7 +221,7 @@ PY
 # already there gets the recipe's value, a new one is added, "-FLAG" removes one.
 strata_engine_args() {
   [ -n "${STRATA_ENGINE_ARGS:-}" ] || return 0
-  "$STRATA_DIR/.venv/bin/python" - "$1" "$STRATA_ENGINE_ARGS" <<'PY' || { say "!! STRATA_ENGINE_ARGS: bad"; return 1; }
+  "$STRATA_TERMINAL/.venv/bin/python" - "$1" "$STRATA_ENGINE_ARGS" <<'PY' || { say "!! STRATA_ENGINE_ARGS: bad"; return 1; }
 import json, shlex, sys
 path, extra = sys.argv[1], shlex.split(sys.argv[2])
 cfg = json.load(open(path, encoding="utf-8-sig"))
@@ -249,13 +252,13 @@ print("engine args:", " ".join(args))
 PY
 }
 
-strata_config() { ls -t "$STRATA_DIR"/strata-*.json 2>/dev/null | head -1; }
+strata_config() { ls -t "$STRATA_TERMINAL"/strata-*.json "$STRATA_DIR"/strata-*.json 2>/dev/null | head -1; }
 
 strata_start() {
   local cfg; cfg=$(strata_config)
   [ -n "$cfg" ] || { say "!! no Strata config: did bootstrap.sh run?"; return 1; }
   say "Strata server: $(basename "$cfg"), 127.0.0.1:$PORT"
-  ( cd "$STRATA_DIR" && STRATA_API_KEY="$KEY" exec nohup .venv/bin/python -u serve/server.py \
+  ( cd "$STRATA_TERMINAL" && STRATA_API_KEY="$KEY" exec nohup .venv/bin/python -u serve/server.py \
       --engine strata --config "$cfg" --port "$PORT" ) > "$LOG" 2>&1 &
 }
 
@@ -278,7 +281,7 @@ strata_warm() {
   local table log cfg; table=$(ls "$MODEL_DIR/models/$STRATA_MODEL/"*-00002-of-00002.gguf 2>/dev/null | head -1)
   [ -n "$table" ] || { say "no n-gram table to warm under $MODEL_DIR/models/$STRATA_MODEL"; return 0; }
   cfg=$(strata_config)
-  log=$("$STRATA_DIR/.venv/bin/python" -c "import json,sys; print(json.load(open(sys.argv[1]))['log'])" "$cfg" 2>/dev/null)
+  log=$("$STRATA_TERMINAL/.venv/bin/python" -c "import json,sys; print(json.load(open(sys.argv[1]))['log'])" "$cfg" 2>/dev/null)
   [ -n "$log" ] || { say "no engine log in $cfg: the n-gram table stays on disk"; return 0; }
   pkill -f 'strata_war[m]_loop' 2>/dev/null || true
   setsid nohup bash -c '
