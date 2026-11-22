@@ -248,6 +248,30 @@ streaming. Responses was tested as a stateless full-history API; response-ID ret
 compact, a full Codex `apply_patch` workflow, full-window context load, and concurrency were **not**
 tested. The paid GPU was stopped; Colab reported zero assignments and zero hourly rate afterward.
 
+## Strata fork `hf-stream-vram` on the A100-80G High-RAM (2026-11-22)
+
+One run on the Pro account, Colab A100-SXM4-80GB High-RAM (79.3 GiB VRAM, 167.1 GiB RAM, compute 8.0,
+236.55 CU before the run). The engine was the prebuilt fork zip
+`9765f5e3e353f0f54095e3a02aa8d5cb1c5c19e970582374a31ad03c23a4e012` (source
+`5f916e2e77798db87d5d477c4da75fbfdcfa7f0a`), `sm_80` + `sm_89`, CUDA 13.4. The model was ISTA-DASLab
+IQ3_S revision `2a55d75962e22f7a4a1d9963ab6eae3678537831`.
+
+The fresh bootstrap first downloaded the 28.8 GB PLE shard and a ~3.4 GB sparse prefix of the metadata
+shard, then `iq_pack` prepared the pack. Its first attempt failed before starting the engine because
+the script still looked for the 0.1.41 checkout layout; the `terminal/` layout fix and the sparse-hash
+skip were applied and the same box reattached. The measured READY below starts from that reattach, with
+the PLE shard and sparse prefix already present.
+
+- `up` 18:06:16 → READY 18:22:13, **15m48s**.
+- Engine stream: **51.05 GiB in 850.4 s**, 61.5 MiB/s, 8 HTTP Range connections.
+- Expert arena: **46.84 GiB at 0.33 GiB/s**, then the 24,576-expert VRAM cache fill.
+- Smoke `/v1/chat/completions`: 64 prompt tokens at **178.1 t/s**; 108 generated tokens at
+  **135.6 t/s** with the DFlash2 drafter. One request; not a benchmark.
+- The A100-40G `st` assignment returned `Service Unavailable` three times; the recipe was run on the
+  available 80GB High-RAM card instead, so `a100-40g/qwen38-fn-strata` remains experimental.
+
+The box was stopped after the test; `colab sessions` reported no active assignment.
+
 ## Project Maya v1.0.30 Maya-L on A100-80G High-RAM (2026-10-10)
 
 One direct, text-only VM trial used a verified NVIDIA A100-SXM4-80GB (81,920 MiB VRAM),

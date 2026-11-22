@@ -479,6 +479,16 @@ What you get:
     profile fill. The A100 speeds above are still 0.1.41 measurements; this build has not been
     re-run on an A100, so the recipe is marked experimental. The 84 GB model revision is unchanged.
 
+- **A100-80G High-RAM, 2026-11-22.** The same fork build was run on the Pro account's
+  A100-SXM4-80GB High-RAM box. Reattaching with the PLE shard and the sparse metadata prefix already
+  prepared, `up` reached READY in **15m48s**: the engine streamed 51.05 GiB of the metadata shard at
+  **61.5 MiB/s**, then loaded the 46.84 GiB expert arena and filled the VRAM cache. A smoke chat
+  request (64 input tokens) measured **178.1 t/s** prefill and **135.6 t/s** decode over 108 output
+  tokens, with the DFlash2 drafter; these are one-request probes, not a benchmark. The fresh first
+  run also downloads the 28.8 GB PLE shard and a ~3.4 GB sparse prefix. The A100-40G card was not
+  available for assignment during this test (Colab returned `Service Unavailable`), so that recipe
+  remains experimental.
+
 ### C. The command line
 
 Everything the panel does also runs from a terminal, with the Python that collabosm installed:

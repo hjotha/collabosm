@@ -682,6 +682,103 @@
    }
   },
   {
+   "id": "a100-80g-hm/qwen38-fn-strata",
+   "gpu": "a100-80g-hm",
+   "model": "qwen38-fn-strata",
+   "status": "verified",
+   "eta_min": 30,
+   "env": {
+    "STRATA_CONTEXT": 262144,
+    "STRATA_KV": "int8",
+    "STRATA_HF_STREAM": "1",
+    "STRATA_HF_STREAM_URL": "https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF/resolve/2a55d75962e22f7a4a1d9963ab6eae3678537831/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf"
+   },
+   "facts": {
+    "weights": {
+     "v": 77.9,
+     "unit": "GiB",
+     "measured": true,
+     "src": "83.6 GB on Hugging Face: two IQ3_S shards (3.50 bpw on average; GSQ-RCO picks each tensor's type, the experts mixing Q2_0 and IQ4_NL by layer) with the 28.8 GB n-gram table; ISTA-DASLab, Apache-2.0. Their benchmarks put it level with BF16 (AIME25, GPQA-Diamond, LiveCodeBench v6: 93.26 vs 93.12)"
+    },
+    "engine_version": {
+     "v": "0.1.65",
+     "measured": true,
+     "src": "2026-11-22 A100-SXM4-80GB High-RAM run: fork github.com/hjotha/Strata, prebuilt zip SHA-256 9765f5e3e353f0f54095e3a02aa8d5cb1c5c19e970582374a31ad03c23a4e012 (built from abb720641). The recipe streamed the 51.05 GiB metadata shard over HTTP Range (61.5 MiB/s) and reached READY in 15m48s after reattaching with the PLE shard and the sparse metadata prefix already present. The fresh first run also downloads the 28.8 GB PLE shard and a 3.4 GB sparse prefix before the engine starts."
+    },
+    "prefill_tps": {
+     "v": 1320.9,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "Strata 0.1.41 latest041-v2 on A100-SXM4-40GB, one request per text slice: 12,878 input tokens 1,320.9 t/s; 26,816 1,492.8 and 26,451 1,591.8; 52,323 1,951.0 and 56,363 2,332.8; 110,921 2,515.8 and 110,072 2,566.9. First 12,160-token sample at 2,438.5 was excluded from headline due overlap with aborted run. KV prompt-cache count was zero; Strata row/expert cache state was not controlled. These are observed samples, not an average or n=3; no matched same-box 0.1.24 comparison."
+    },
+    "decode_tps": {
+     "v": 87.6,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "Strata 0.1.41 A100-SXM4-40GB, two 512-token output probes: 87.6 t/s after 2,900 input tokens and 93.0 t/s after 21,672 input tokens. One sample per context. Historical 0.1.24 short-context 58.8 t/s was from a different run/VM, not a paired speed comparison."
+    },
+    "eta_min": {
+     "v": 40,
+     "unit": "min",
+     "measured": false,
+     "src": "Conservative UI estimate. The source-build trial reached READY about 29 minutes after A100 assignment; source compilation, downloads, and Colab scheduling vary."
+    },
+    "context": {
+     "v": 262144,
+     "measured": true,
+     "src": "v0.1.41 runtime config sets --max-context 262144; benchmark prompts reached 110,921 actual input tokens, so the full configured window was not stress-tested."
+    },
+    "vision": {
+     "v": true,
+     "measured": true,
+     "src": "v0.1.41 trial (docs/MEASURED.md) passed an end-to-end 256x128 red-left/blue-right image fixture: response identified Left Red / Right Blue with no contradictory answer. This validates that simple fixture only, not the earlier 640x400/general image benchmark."
+    },
+    "responses_api": {
+     "v": true,
+     "measured": true,
+     "src": "v0.1.41 smoke validated non-streaming /responses completion and strict streamed PONG response; response-ID continuation/stateful operations were not tested."
+    },
+    "concurrency": {
+     "v": "not measured",
+     "measured": false,
+     "src": "Trial validated single-request API paths only; no concurrent-load test was run."
+    },
+    "host_ram": {
+     "v": "57,458 MiB used; 28,018 MiB available",
+     "measured": true,
+     "src": "2026-10-09 trial (docs/MEASURED.md) free -m snapshot: 85,477 MiB total, 57,458 MiB used, 28,018 MiB available; includes OS cache/accounting, not engine-only RSS."
+    },
+    "tools_api": {
+     "v": true,
+     "measured": true,
+     "src": "v0.1.41 extra-smoke-v2 validated a function tool probe and full function-call roundtrip (report_answer returned exact text 42)."
+    },
+    "engine_version_0_1_41": {
+     "v": "0.1.41",
+     "measured": true,
+     "src": "2026-10-10 A100-SXM4-40GB trial: official source commit fb58e0dbc8399662c0e47c76578c6e878b14f6cf; CUDA 13 source build with driver 580.82.07; engine SHA-256 81c5e113c48292a723d2cb4ff2613d7be4a79ee559f32292cd6ff07670e10271 (see docs/MEASURED.md). Existing GGUF revision 2a55d75962e22f7a4a1d9963ab6eae3678537831 was reused."
+    },
+    "startup_min": {
+     "v": 15.8,
+     "unit": "min",
+     "measured": true,
+     "src": "2026-11-22 A100-SXM4-80GB High-RAM, reattach with the PLE shard and sparse prefix prepared: `up` at 18:06:16, READY at 18:22:13. The engine streamed 51.05 GiB in 850.4 s (61.5 MiB/s), then loaded the 46.84 GiB expert arena and filled the VRAM cache. The previous source-built 0.1.41 recipe took about 29 min."
+    },
+    "smoke_prefill_tps": {
+     "v": 178.1,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "one 64-token chat prompt through /v1/chat/completions on the A100-80G High-RAM; smoke probe, not a benchmark."
+    },
+    "smoke_decode_tps": {
+     "v": 135.6,
+     "unit": "tokens/s",
+     "measured": true,
+     "src": "the same one-request smoke probe, 108 output tokens with the DFlash2 drafter; not a benchmark."
+    }
+   }
+  },
+  {
    "id": "a100-80g-hm/glm53-flash-maya-l",
    "gpu": "a100-80g-hm",
    "model": "glm53-flash-maya-l",
