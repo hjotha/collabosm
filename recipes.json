@@ -233,7 +233,7 @@
    "recurrent": true,
    "strata": {
     "repo": "https://github.com/hjotha/Strata",
-    "commit": "abb720641684ae93fae9734123adf7f4a57b9808",
+    "commit": "5f916e2e77798db87d5d477c4da75fbfdcfa7f0a",
     "build": false,
     "cuda": "13",
     "quant": "IQ3_S",
@@ -619,7 +619,7 @@
     "engine_version": {
      "v": "0.1.65",
      "measured": false,
-     "src": "2026-11-22 fork build github.com/hjotha/Strata commit abb720641684ae93fae9734123adf7f4a57b9808 (base 0.1.65), prebuilt zip sha256 9765f5e3e353f0f54095e3a02aa8d5cb1c5c19e970582374a31ad03c23a4e012, sm_80+sm_89 CUDA 13.4, Ubuntu 24.04 glibc. Adds opt-in --hf-stream-vram; the A100 numbers in this card were measured on 0.1.41 and have not been re-run."
+     "src": "2026-11-22 fork build github.com/hjotha/Strata commit 5f916e2e77798db87d5d477c4da75fbfdcfa7f0a (base 0.1.65), prebuilt zip sha256 9765f5e3e353f0f54095e3a02aa8d5cb1c5c19e970582374a31ad03c23a4e012, sm_80+sm_89 CUDA 13.4, Ubuntu 24.04 glibc. Adds opt-in --hf-stream-vram; the A100 numbers in this card were measured on 0.1.41 and have not been re-run."
     },
     "prefill_tps": {
      "v": 1320.9,
