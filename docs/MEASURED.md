@@ -199,8 +199,10 @@ every cold prompt, the server's own timings.
 
 > 2026-11-22: the recipe now uses the fork build `github.com/hjotha/Strata` commit
 > `92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27` (0.1.65, prebuilt CUDA 13, sm_80+sm_89) with the
-> opt-in `--hf-stream-vram` download path. The A100 numbers below are the 0.1.41 run and have
-> **not** been re-measured on the fork build; the recipe is marked experimental.
+> opt-in `--hf-stream-vram` download path. On a fresh VM the recipe downloads only the PLE shard
+> and a 3.4 GB sparse metadata prefix for `iq_pack`; the engine then streams the remaining ~55 GB
+> over HTTP Range as it loads. The A100 numbers below are the 0.1.41 run and have **not** been
+> re-measured on the fork build; the recipe is marked experimental.
 
 One paid A100-SXM4-40GB trial (40,960 MiB VRAM, 83.5 GiB host RAM), NVIDIA driver 580.82.07,
 installed CUDA compiler 13.0.88. The engine was built on the VM from official

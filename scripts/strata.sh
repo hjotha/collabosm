@@ -149,6 +149,11 @@ strata_install() {
 # as one HTTP stream from main, and its 84 GB took most of a 22-minute first start. They
 # go where setup.py looks (<data>/models/<quant>/, the encoder in <data>/models/), each
 # with the .done mark that makes setup.py keep a file instead of fetching it.
+#
+# STRATA_HF_STREAM=1 (with STRATA_HF_STREAM_URL): only the PLE shard and the image encoder
+# are fetched whole.  The metadata shard becomes a full-size sparse file with its header and
+# every non-expert tensor (about 3.4 GB), which iq_pack needs to build the pack; the engine
+# then fetches the remaining ~55 GB over HTTP Range while it loads (--hf-stream-vram).
 strata_weights() {
   local models="$MODEL_DIR/models" vision="${STRATA_VISION:-none}"
   local want="$MODEL_REPO@$MODEL_REVISION $STRATA_MODEL vision=$vision"
@@ -160,18 +165,46 @@ strata_weights() {
   local t0; t0=$(date +%s)
   python -c "import hf_xet" 2>/dev/null || python -m pip install -q hf_xet >/dev/null 2>&1 \
     || say "  (no hf_xet: one HTTP stream per file)"
-  HF_XET_HIGH_PERFORMANCE=1 python - "$MODEL_REPO" "$MODEL_REVISION" "$models" "$STRATA_MODEL" "$vision" <<'PY' \
+  local stream="${STRATA_HF_STREAM:-0}" stream_url="${STRATA_HF_STREAM_URL:-}"
+  HF_XET_HIGH_PERFORMANCE=1 python - "$MODEL_REPO" "$MODEL_REVISION" "$models" "$STRATA_MODEL" "$vision" \
+      "$stream" "$stream_url" "$STRATA_DIR" <<'PY' \
     || { say "!! model download (HF_HUB_DISABLE_XET=1 is the fallback when Xet stalls)"; return 1; }
-import pathlib, sys
+import pathlib, subprocess, sys
 from huggingface_hub import snapshot_download
-repo, rev, models, quant, vision = sys.argv[1:]
+repo, rev, models, quant, vision, stream, stream_url, strata_dir = sys.argv[1:]
 models = pathlib.Path(models)
-snapshot_download(repo_id=repo, revision=rev, local_dir=str(models), max_workers=8,
-                  allow_patterns=[quant + "/*.gguf"] + (["mmproj-*.gguf"] if vision != "none" else []))
-got = sorted((models / quant).glob("*.gguf")) + (sorted(models.glob("mmproj-*.gguf")) if vision != "none" else [])
-if len(got) < 2 + (vision != "none"):
-    sys.exit("expected two %s shards%s, found %s" % (quant, " and the image encoder" if vision != "none" else "",
-                                                     [p.name for p in got]))
+mmproj = ["mmproj-*.gguf"] if vision != "none" else []
+stream = stream == "1" and bool(stream_url)
+if not stream:
+    snapshot_download(repo_id=repo, revision=rev, local_dir=str(models), max_workers=8,
+                      allow_patterns=[quant + "/*.gguf"] + mmproj)
+    got = sorted((models / quant).glob("*.gguf")) + (sorted(models.glob("mmproj-*.gguf")) if vision != "none" else [])
+    if len(got) < 2 + (vision != "none"):
+        sys.exit("expected two %s shards%s, found %s" % (quant, " and the image encoder" if vision != "none" else "",
+                                                         [p.name for p in got]))
+else:
+    # --hf-stream-vram: only the PLE shard and the image encoder are downloaded whole.  The metadata shard
+    # becomes a full-size sparse file with its header and every non-expert tensor; iq_pack needs those to build
+    # the dense part of the pack, and the engine then fetches the whole shard over HTTP Range as it loads.
+    shard2 = stream_url.rsplit("/", 1)[-1].replace("-00001-of-", "-00002-of-")
+    if shard2 == stream_url.rsplit("/", 1)[-1]:
+        sys.exit("STRATA_HF_STREAM_URL does not name a -00001-of-0000N.gguf shard")
+    snapshot_download(repo_id=repo, revision=rev, local_dir=str(models), max_workers=8,
+                      allow_patterns=[quant + "/" + shard2] + mmproj)
+    shard2_path = models / quant / shard2
+    if not shard2_path.is_file():
+        sys.exit("the PLE shard %s was not downloaded" % shard2)
+    shard1_name = stream_url.rsplit("/", 1)[-1]
+    shard1_path = models / quant / shard1_name
+    prefetch = pathlib.Path("/content/strata_prefetch.py")
+    if not prefetch.is_file():
+        prefetch = pathlib.Path(strata_dir) / "strata_prefetch.py"
+    print("  sparse metadata shard: %s" % shard1_name)
+    subprocess.run([sys.executable, str(prefetch), "--url", stream_url, "--path", str(shard1_path),
+                    "--tools", str(pathlib.Path(strata_dir) / "terminal" / "tools")], check=True)
+    got = [shard2_path] + (sorted(models.glob("mmproj-*.gguf")) if vision != "none" else [])
+    if not shard1_path.is_file():
+        sys.exit("the sparse metadata shard was not written")
 for p in got:
     p.with_name(p.name + ".done").write_text("collabosm " + rev)
     print("  %s  %.1f GB" % (p.name, p.stat().st_size / 1e9))

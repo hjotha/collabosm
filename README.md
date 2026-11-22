@@ -472,10 +472,12 @@ What you get:
   - The recipe now pins the fork commit
     `92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27` of `github.com/hjotha/Strata` (0.1.65) and
     downloads a prebuilt CUDA 13 zip (sm_80 + sm_89, Ubuntu 24.04) instead of compiling on the VM.
-    It adds the opt-in `--hf-stream-vram` path: the engine fetches the 54.8 GB metadata shard over
-    HTTP Range and feeds the dense/head/expert profile fill as the bytes arrive. The A100 speeds
-    above are still 0.1.41 measurements; this build has not been re-run on an A100, so the recipe
-    is marked experimental. The 84 GB model revision is unchanged.
+    It uses the opt-in `--hf-stream-vram` path: on a fresh VM `strata.sh` downloads only the PLE
+    shard (28.8 GB) and the image encoder, then writes a full-size sparse metadata shard with its
+    header and every non-expert tensor (about 3.4 GB) so `iq_pack` can build the pack. The engine
+    fetches the remaining ~55 GB over HTTP Range while it loads the dense weights, head and expert
+    profile fill. The A100 speeds above are still 0.1.41 measurements; this build has not been
+    re-run on an A100, so the recipe is marked experimental. The 84 GB model revision is unchanged.
 
 ### C. The command line
 

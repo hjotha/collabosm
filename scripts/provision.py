@@ -52,7 +52,7 @@ import recipe as registry  # noqa: E402
 # what serve.sh launches on the VM, and what it reads its state with; api_server.py
 # above all -- the kit once shipped without it, and a fresh clone waited 50 paid
 # minutes for a /health that nothing could answer
-KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "maya.sh", "llama.sh",
+KIT = ("api_server.py", "bootstrap.sh", "serve.sh", "strata.sh", "strata_prefetch.py", "maya.sh", "llama.sh",
        "llama-defaults.env", "status.py", "probe_gpu.py", "mashbox.sh")
 
 # Runs on the VM. A re-attached box still has the last run's STATUS and endpoint.json:
