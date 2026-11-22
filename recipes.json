@@ -239,7 +239,7 @@
     "quant": "IQ3_S",
     "dir": "/content/strata-v0.1.65-hjotha",
     "release": "https://github.com/hjotha/Strata/releases/download/collabosm-strata-a100-20261122/",
-    "sha256": "a62b39f7f0beaf91c9c091aa36fb9a792806a23787596a2be5dd82ec91a2e8af"
+    "sha256": "da68f08d26b52feab5495a0d4f1152588db306624eb840a0317d7cbba732a0cf"
    }
   },
   {
@@ -619,7 +619,7 @@
     "engine_version": {
      "v": "0.1.65",
      "measured": false,
-     "src": "2026-11-22 fork build github.com/hjotha/Strata commit 92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27 (base 0.1.65), prebuilt zip sha256 a62b39f7f0beaf91c9c091aa36fb9a792806a23787596a2be5dd82ec91a2e8af, sm_80+sm_89 CUDA 13.4, Ubuntu 24.04 glibc. Adds opt-in --hf-stream-vram; the A100 numbers in this card were measured on 0.1.41 and have not been re-run."
+     "src": "2026-11-22 fork build github.com/hjotha/Strata commit 92a4b4f0c23bcbb66a88c8c72e2e1e6062e0eb27 (base 0.1.65), prebuilt zip sha256 da68f08d26b52feab5495a0d4f1152588db306624eb840a0317d7cbba732a0cf, sm_80+sm_89 CUDA 13.4, Ubuntu 24.04 glibc. Adds opt-in --hf-stream-vram; the A100 numbers in this card were measured on 0.1.41 and have not been re-run."
     },
     "prefill_tps": {
      "v": 1320.9,
