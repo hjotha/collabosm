@@ -53,6 +53,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -306,10 +307,12 @@ class Handler(BaseHTTPRequestHandler):
                         if meter:
                             meter.feed(line)
                 else:
-                    data = resp.read()
-                    self.wfile.write(data)
                     if meter:
+                        data = resp.read()
+                        self.wfile.write(data)
                         meter.whole(data)
+                    else:
+                        shutil.copyfileobj(resp, self.wfile, length=64 * 1024)
             measured = meter.result() if meter else None
             if measured:
                 CONTROL.note_metrics(measured)
@@ -365,6 +368,8 @@ class Handler(BaseHTTPRequestHandler):
             # the rail's mark, for the page's tab: the WebUI's favicon.ico/svg are the
             # WebUI's own (vendored byte for byte), and the shell used to show them
             fs = os.path.join(ICONS, "collabosm" + path[-4:])
+        elif path == "/media":
+            fs = os.path.join(HERE, "media.html")
         elif path in ("/shell", "/shell/"):
             fs = os.path.join(HERE, "shell.html")
         else:

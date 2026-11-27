@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generate media · CollabOSM</title>
+<style>
+  :root { color-scheme: light dark; font: 16px system-ui, sans-serif; }
+  body { max-width: 52rem; padding: 1.5rem; margin: 0 auto; }
+  h1 { font-size: 1.55rem; }
+  form { display: grid; gap: .65rem; }
+  textarea, button { font: inherit; padding: .65rem; }
+  textarea { box-sizing: border-box; width: 100%; resize: vertical; }
+  button { justify-self: start; }
+  img, video { display: block; max-width: 100%; max-height: 70vh; margin: 1rem 0; }
+</style>
+<h1 id="title">Generate media</h1>
+<form id="form">
+  <label for="prompt">Prompt</label>
+  <textarea id="prompt" rows="4" maxlength="4000" required></textarea>
+  <label id="source" hidden>Starting image <input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+  <button id="generate" disabled>Generate</button>
+</form>
+<p id="status" role="status"></p>
+<section id="result" aria-label="Generated media"></section>
+<script>
+const node = id => document.getElementById(id);
+const status = node('status'), button = node('generate'), result = node('result');
+let active, working = false;
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function api(path, body) {
+  const response = await fetch(path, body === undefined ? {} : {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Request failed');
+  return data;
+}
+
+async function refresh() {
+  if (working) return;
+  try {
+    const state = await api('/control/status');
+    if (working) return;
+    active = state.stage === 'ready' ? state.server : null;
+    const kind = active?.media?.kind;
+    button.disabled = !kind;
+    node('title').textContent = kind ? 'Generate ' + (kind === 'image' ? 'an image' : 'a video') : 'Generate media';
+    node('source').hidden = !active?.media?.image_input;
+    node('image').required = !!active?.media?.image_input;
+    if (!kind && !result.childElementCount) status.textContent = 'Waiting for the model…';
+    else if (status.textContent === 'Waiting for the model…') status.textContent = '';
+  } catch {
+    if (!working) button.disabled = true;
+  }
+}
+
+function readImage(file) {
+  if (!file || file.size > 8 * 1024 * 1024) throw new Error('Choose a PNG, JPEG or WebP up to 8 MiB.');
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read the starting image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+node('form').onsubmit = async event => {
+  event.preventDefault();
+  if (button.disabled || working) return;
+  working = true;
+  button.disabled = true;
+  status.textContent = 'Generating…';
+  try {
+    const body = {prompt: node('prompt').value, model: active.model};
+    let output, url, seconds, filename;
+    if (active.media.kind === 'image') {
+      const response = await api('/v1/images/generations', {...body, response_format: 'b64_json'});
+      output = document.createElement('img');
+      output.alt = body.prompt;
+      url = 'data:image/png;base64,' + response.data[0].b64_json;
+      seconds = response.generation_seconds;
+      filename = 'collabosm.png';
+    } else {
+      if (active.media.image_input) body.image = await readImage(node('image').files[0]);
+      let job = await api('/v1/videos', body);
+      const path = '/v1/videos/' + encodeURIComponent(job.id);
+      while (job.status === 'in_progress') {
+        await pause(2000);
+        job = await api(path);
+      }
+      if (job.status !== 'completed') throw new Error(job.error?.message || 'Video generation failed');
+      output = document.createElement('video');
+      output.controls = true;
+      output.playsInline = true;
+      url = path + '/content';
+      seconds = job.generation_seconds;
+      filename = 'collabosm.mp4';
+    }
+    output.src = url;
+    const download = document.createElement('a');
+    download.href = url;
+    download.download = filename;
+    download.textContent = 'Download';
+    result.replaceChildren(output, download);
+    status.textContent = 'Generated in ' + seconds + ' s';
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    working = false;
+    refresh();
+  }
+};
+refresh();
+setInterval(refresh, 2000);
+</script>
+</html>

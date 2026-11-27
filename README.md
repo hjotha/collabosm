@@ -199,6 +199,21 @@ Type in the message box on the left and press Enter. The answer appears as it is
 - Your conversations are kept in your browser, on this computer.
 - One message is answered at a time.
 
+### Generate images and videos
+
+Select an image or video recipe under **GPUs** and start it. collabosm downloads the weights
+from Hugging Face and opens a panel where you can enter a prompt, view the result and download
+the PNG or MP4. FramePack also requires a starting image. Download the result before stopping
+the VM.
+
+Programs can send a JSON body such as `{"prompt":"A red sailboat on a lake","seed":42}` to the
+same collabosm address as the chat API. The seed is optional.
+
+- `POST /v1/images/generations` returns a PNG in `data[0].b64_json`.
+- `POST /v1/videos` returns HTTP 202 and a job `id`. Poll `GET /v1/videos/{id}` until the job
+  is `completed` or `failed`. Fetch the MP4 from `GET /v1/videos/{id}/content` after completion.
+- With FramePack, include `image` as a PNG, JPEG or WebP data URL in the video request.
+
 ### Stop the GPU
 
 **The GPU costs money every minute it runs, even while you are not chatting.**

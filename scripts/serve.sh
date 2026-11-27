@@ -39,6 +39,7 @@ for pid in $(pgrep -f 'bash /content/serve.sh' 2>/dev/null); do
 done
 pkill -f 'collabosm-llama/llama.*/llama-serve[r]' 2>/dev/null || true
 pkill -f 'api_serve[r].py' 2>/dev/null || true
+pkill -f 'media_serve[r].py' 2>/dev/null || true
 pkill -f 'serve/serve[r].py --engine strata' 2>/dev/null || true
 pkill -f '/content/collabosm-mashbo[x]/bin/mashbox run' 2>/dev/null || true
 pkill -f 'cloudflare[d]' 2>/dev/null || true
@@ -49,6 +50,11 @@ if [ "${ENGINE:-exl3}" = "llama" ]; then
   . /content/llama.sh
   llama_start || { status "stage=serve_failed"; exit 1; }
   PROC="$LLAMA_PROC"
+elif [ "${ENGINE:-exl3}" = "media" ]; then
+  media_venv=/content/collabosm-media
+  [[ "$MEDIA_PIPELINE" != pika ]] || media_venv=/content/collabosm-pika-venv
+  nohup "$media_venv/bin/python" -u /content/media_server.py > "$LOG" 2>&1 &
+  PROC='/content/media_server.py'
 elif [ "${ENGINE:-exl3}" = "mashbox" ]; then
   . /content/mashbox.sh
   mashbox_start

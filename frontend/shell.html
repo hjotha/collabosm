@@ -2096,6 +2096,13 @@ function render() {
   if (gone) return;
   renderHeader();
   if (!st) return;
+  const selected = st.recipes?.find(recipe => recipe.id === st.selected);
+  const frame = $('ui');
+  const view = selected?.media ? '/media' : '/?embed=1';
+  if (frame.getAttribute('src') !== view) {
+    frame.title = selected?.media ? 'Media generation' : 'collabosm chat';
+    frame.src = view;
+  }
   put('f-colab', foldHTML('colab', 'compass', t('sec.colab'), colabHTML, colabStep() < 3));
   put('s-status', statusHTML());
   put('f-gpus', foldHTML('gpus', 'cpu', t('sec.gpus'), gpusHTML));

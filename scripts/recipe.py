@@ -40,7 +40,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REGISTRY = os.environ.get("RECIPES_FILE") or os.path.join(HERE, os.pardir, "recipes.json")
 STATUSES = ("verified", "unmeasured", "experimental", "placeholder")
 # what serves the model on the box: our ExLlamaV3 API, Strata, or Project Maya
-ENGINES = ("exl3", "strata", "maya", "llama", "mashbox")
+ENGINES = ("exl3", "strata", "maya", "llama", "mashbox", "media")
 DEFAULT = "a100-40g/qwen38-27b"
 ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]*$")
 # What the VM keeps besides the recipe's own keys, when the caller sets them: they are
@@ -197,7 +197,7 @@ def launch_env(reg: dict, rid: str) -> dict:
         "MTP": 1 if m.get("mtp") else 0, "NGRAM": 1 if m.get("ngram") else 0,
         "ENGINE": m.get("engine", "exl3"),
     }
-    if g.get("fallback_accelerators"):
+    if g.get("fallback_accelerators") and m.get("engine") != "media":
         env["FALLBACK_ACCELERATORS"] = ",".join(g["fallback_accelerators"])
     if m.get("engine") == "llama":
         # The VM sources these same preset values when an older launch env omits them.
@@ -258,7 +258,7 @@ def flat(reg: dict) -> list:
             "high_mem": bool(g.get("high_mem")), "high_mem_ram_gb": g.get("high_mem_ram_gb"),
             "model_id": m["id"], "model": m["name"], "params": m.get("params"),
             "quant": m.get("quant"), "short": m.get("short") or (m.get("quant") or "").split(",")[0],
-            "served_id": m["served_id"],
+            "served_id": m["served_id"], "media": m.get("media"),
             "eta_min": r.get("eta_min"), "env": launch_env(reg, r["id"]),
             "facts": facts(reg, r["id"]), "why": r.get("why") or {},
         })

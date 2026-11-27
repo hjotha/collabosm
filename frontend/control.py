@@ -1115,9 +1115,18 @@ class Control:
                 self.state["note"] = _note("ready")
             return
         with self.lock:
+            token = self.epoch
             self.state["endpoint"]["key_pending"] = True
-        r = self.couple("after_ready")
+        for _ in range(2):
+            r = self.couple("after_ready")
+            if r.get("code") not in ("not_ready", "unreachable", "probe_failed"):
+                break
+            with self.lock:
+                if self.epoch != token or self.state["stage"] not in ("loading", "ready"):
+                    return
         with self.lock:
+            if self.epoch != token:
+                return
             self.state["endpoint"]["key_pending"] = False
         if r.get("code") != "coupled":
             self._log("!! READY, but the rail could not couple (%s) -- chat will 503"
@@ -1702,7 +1711,10 @@ class Control:
             if why != "rediscover":
                 self.last_activity = max(self.last_activity, now)   # a fresh idle clock
         self._absorb_server(eff_server, url)
-        self._sync_cliproxy(ids[0] if ids else recipe.get("served_id") or recipe["model"], disabled=False)
+        if recipe.get("media"):
+            self._sync_cliproxy(None, disabled=True)
+        else:
+            self._sync_cliproxy(ids[0] if ids else recipe.get("served_id") or recipe["model"], disabled=False)
         if server is None and not hb_data and not self.fake:
             threading.Thread(target=self._keep_alive, kwargs={"ping": False, "heartbeat": True},
                              daemon=True).start()

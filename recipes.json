@@ -176,6 +176,72 @@
  ],
  "models": [
   {
+   "id": "sd-turbo",
+   "name": "SD Turbo",
+   "short": "PNG · 512×512",
+   "repo": "stabilityai/sd-turbo",
+   "revision": "b261bac6fd2cf515557d5d0707481eafa0485ec2",
+   "dir": "/content/media/sd-turbo",
+   "served_id": "sd-turbo",
+   "engine": "media",
+   "media": "image"
+  },
+  {
+   "id": "wan21-1.3b",
+   "name": "Wan 2.1 1.3B",
+   "short": "MP4 · text to video",
+   "repo": "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
+   "revision": "0fad780a534b6463e45facd96134c9f345acfa5b",
+   "dir": "/content/media/wan21-1.3b",
+   "served_id": "wan21-1.3b",
+   "engine": "media",
+   "media": "video"
+  },
+  {
+   "id": "z-image-turbo",
+   "name": "Z-Image Turbo",
+   "short": "PNG · 1024×1024",
+   "repo": "Tongyi-MAI/Z-Image-Turbo",
+   "revision": "f332072aa78be7aecdf3ee76d5c247082da564a6",
+   "dir": "/content/media/z-image-turbo",
+   "served_id": "z-image-turbo",
+   "engine": "media",
+   "media": "image"
+  },
+  {
+   "id": "wan22-5b",
+   "name": "Wan 2.2 5B",
+   "short": "MP4 · text to video",
+   "repo": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+   "revision": "b8fff7315c768468a5333511427288870b2e9635",
+   "dir": "/content/media/wan22-5b",
+   "served_id": "wan22-5b",
+   "engine": "media",
+   "media": "video"
+  },
+  {
+   "id": "framepack-hy",
+   "name": "FramePack Hunyuan",
+   "short": "MP4 · image to video",
+   "repo": "lllyasviel/FramePackI2V_HY",
+   "revision": "86cef4396041b6002c957852daac4c91aaa47c79",
+   "dir": "/content/media/framepack-hy",
+   "served_id": "framepack-hy",
+   "engine": "media",
+   "media": "video"
+  },
+  {
+   "id": "pika-h3-flex",
+   "name": "Pika H3 Flex",
+   "short": "MP4 · video + audio",
+   "repo": "Pika-Labs/Pika-H3-Flex",
+   "revision": "0ddf55ad7067ca1e76812253bd7b4600df87f759",
+   "dir": "/content/media/pika-h3-flex",
+   "served_id": "pika-h3-flex",
+   "engine": "media",
+   "media": "video"
+  },
+  {
    "id": "qwen38-fn",
    "name": "Qwen3.8-Flash-Next",
    "short": "EXL3 4-bit",
@@ -1506,6 +1572,229 @@
      "measured": false,
      "src": "26.94 GB per MASHBOX model card"
     }
+   }
+  },
+  {
+   "id": "a100-40g/sd-turbo",
+   "gpu": "a100-40g",
+   "model": "sd-turbo",
+   "status": "experimental",
+   "eta_min": 5,
+   "env": {
+    "MEDIA_PIPELINE": "sd-turbo"
+   }
+  },
+  {
+   "id": "a100-80g-hm/sd-turbo",
+   "gpu": "a100-80g-hm",
+   "model": "sd-turbo",
+   "status": "experimental",
+   "eta_min": 5,
+   "env": {
+    "MEDIA_PIPELINE": "sd-turbo"
+   }
+  },
+  {
+   "id": "t4-free/sd-turbo",
+   "gpu": "t4-free",
+   "model": "sd-turbo",
+   "status": "verified",
+   "eta_min": 7,
+   "env": {
+    "MEDIA_PIPELINE": "sd-turbo"
+   }
+  },
+  {
+   "id": "l4/sd-turbo",
+   "gpu": "l4",
+   "model": "sd-turbo",
+   "status": "experimental",
+   "eta_min": 5,
+   "env": {
+    "MEDIA_PIPELINE": "sd-turbo"
+   }
+  },
+  {
+   "id": "g4/sd-turbo",
+   "gpu": "g4",
+   "model": "sd-turbo",
+   "status": "experimental",
+   "eta_min": 5,
+   "env": {
+    "MEDIA_PIPELINE": "sd-turbo"
+   }
+  },
+  {
+   "id": "a100-40g/wan21-1.3b",
+   "gpu": "a100-40g",
+   "model": "wan21-1.3b",
+   "status": "experimental",
+   "eta_min": 14,
+   "env": {
+    "MEDIA_PIPELINE": "wan21"
+   }
+  },
+  {
+   "id": "a100-80g-hm/wan21-1.3b",
+   "gpu": "a100-80g-hm",
+   "model": "wan21-1.3b",
+   "status": "experimental",
+   "eta_min": 14,
+   "env": {
+    "MEDIA_PIPELINE": "wan21"
+   }
+  },
+  {
+   "id": "t4-free/wan21-1.3b",
+   "gpu": "t4-free",
+   "model": "wan21-1.3b",
+   "status": "verified",
+   "eta_min": 17,
+   "env": {
+    "MEDIA_PIPELINE": "wan21"
+   }
+  },
+  {
+   "id": "l4/wan21-1.3b",
+   "gpu": "l4",
+   "model": "wan21-1.3b",
+   "status": "experimental",
+   "eta_min": 14,
+   "env": {
+    "MEDIA_PIPELINE": "wan21"
+   }
+  },
+  {
+   "id": "g4/wan21-1.3b",
+   "gpu": "g4",
+   "model": "wan21-1.3b",
+   "status": "experimental",
+   "eta_min": 14,
+   "env": {
+    "MEDIA_PIPELINE": "wan21"
+   }
+  },
+  {
+   "id": "a100-40g/z-image-turbo",
+   "gpu": "a100-40g",
+   "model": "z-image-turbo",
+   "status": "experimental",
+   "eta_min": 12,
+   "env": {
+    "MEDIA_PIPELINE": "z-image"
+   }
+  },
+  {
+   "id": "a100-80g-hm/z-image-turbo",
+   "gpu": "a100-80g-hm",
+   "model": "z-image-turbo",
+   "status": "experimental",
+   "eta_min": 12,
+   "env": {
+    "MEDIA_PIPELINE": "z-image"
+   }
+  },
+  {
+   "id": "l4/z-image-turbo",
+   "gpu": "l4",
+   "model": "z-image-turbo",
+   "status": "experimental",
+   "eta_min": 12,
+   "env": {
+    "MEDIA_PIPELINE": "z-image"
+   }
+  },
+  {
+   "id": "g4/z-image-turbo",
+   "gpu": "g4",
+   "model": "z-image-turbo",
+   "status": "experimental",
+   "eta_min": 12,
+   "env": {
+    "MEDIA_PIPELINE": "z-image"
+   }
+  },
+  {
+   "id": "a100-40g/wan22-5b",
+   "gpu": "a100-40g",
+   "model": "wan22-5b",
+   "status": "experimental",
+   "eta_min": 18,
+   "env": {
+    "MEDIA_PIPELINE": "wan22"
+   }
+  },
+  {
+   "id": "a100-80g-hm/wan22-5b",
+   "gpu": "a100-80g-hm",
+   "model": "wan22-5b",
+   "status": "experimental",
+   "eta_min": 18,
+   "env": {
+    "MEDIA_PIPELINE": "wan22"
+   }
+  },
+  {
+   "id": "l4/wan22-5b",
+   "gpu": "l4",
+   "model": "wan22-5b",
+   "status": "experimental",
+   "eta_min": 18,
+   "env": {
+    "MEDIA_PIPELINE": "wan22"
+   }
+  },
+  {
+   "id": "g4/wan22-5b",
+   "gpu": "g4",
+   "model": "wan22-5b",
+   "status": "experimental",
+   "eta_min": 18,
+   "env": {
+    "MEDIA_PIPELINE": "wan22"
+   }
+  },
+  {
+   "id": "a100-40g/framepack-hy",
+   "gpu": "a100-40g",
+   "model": "framepack-hy",
+   "status": "experimental",
+   "eta_min": 23,
+   "env": {
+    "MEDIA_PIPELINE": "framepack"
+   }
+  },
+  {
+   "id": "a100-80g-hm/framepack-hy",
+   "gpu": "a100-80g-hm",
+   "model": "framepack-hy",
+   "status": "experimental",
+   "eta_min": 23,
+   "env": {
+    "MEDIA_PIPELINE": "framepack"
+   }
+  },
+  {
+   "id": "g4/framepack-hy",
+   "gpu": "g4",
+   "model": "framepack-hy",
+   "status": "experimental",
+   "eta_min": 23,
+   "env": {
+    "MEDIA_PIPELINE": "framepack"
+   }
+  },
+  {
+   "id": "g4/pika-h3-flex",
+   "gpu": "g4",
+   "model": "pika-h3-flex",
+   "status": "experimental",
+   "eta_min": 15,
+   "env": {
+    "MEDIA_PIPELINE": "pika"
+   },
+   "why": {
+    "en": "Requires 225 GB of free VM disk. First generation downloads the base weights and adapter."
    }
   }
  ]
